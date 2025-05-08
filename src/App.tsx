@@ -1,25 +1,27 @@
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AppProvider } from './context/AppContext';
+import HomePage from './pages/HomePage';
+import SitePage from './pages/SitePage';
+import ItemDetailPage from './pages/ItemDetailPage';
+import ErrorBoundary from './components/ErrorBoundary';
+import MCPProvider from './components/MCPProvider';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <ErrorBoundary>
+      <MCPProvider>
+        <Router>
+          <AppProvider>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/site/:siteId" element={<SitePage />} />
+              <Route path="/item/:itemId" element={<ItemDetailPage />} />
+            </Routes>
+          </AppProvider>
+        </Router>
+      </MCPProvider>
+    </ErrorBoundary>
   );
 }
 
