@@ -1,0 +1,60 @@
+<!--index.wxml-->
+<view class="container">
+  <!-- 顶部刷新提示 -->
+  <view class="refresh-bar" wx:if="{{lastUpdated}}">
+    <text class="refresh-text">最后更新: {{formatTime(lastUpdated)}}</text>
+    <view class="refresh-btn" bindtap="refreshData" wx:if="{{!isLoading}}">
+      <text>刷新</text>
+    </view>
+  </view>
+
+  <!-- 加载中提示 -->
+  <view class="loading" wx:if="{{isLoading}}">
+    <view class="loading-spinner"></view>
+    <text>加载中...</text>
+  </view>
+
+  <!-- 站点网格 -->
+  <view class="sites-grid">
+    <view class="site-card {{selectedSite && selectedSite.id === site.id ? 'selected' : ''}}"
+          wx:for="{{sites}}" 
+          wx:key="id"
+          wx:for-item="site"
+          data-site="{{site}}"
+          bindtap="handleSiteSelect">
+      <view class="site-icon">{{site.icon}}</view>
+      <view class="site-name">{{site.name}}</view>
+      <view class="site-count" wx:if="{{groupedHotItems[site.id]}}">
+        {{groupedHotItems[site.id].length}}条
+      </view>
+    </view>
+  </view>
+
+  <!-- 热点列表 -->
+  <view class="hot-items">
+    <block wx:if="{{selectedSite}}">
+      <view class="site-header">
+        <text class="site-title">{{selectedSite.name}}热搜</text>
+      </view>
+      <view class="items-list">
+        <view class="hot-item" 
+              wx:for="{{groupedHotItems[selectedSite.id]}}" 
+              wx:key="id"
+              data-item="{{item}}"
+              bindtap="handleItemClick">
+          <view class="item-rank {{item.rank <= 3 ? 'top-' + item.rank : ''}}">{{item.rank}}</view>
+          <view class="item-content">
+            <view class="item-title">{{item.title}}</view>
+            <view class="item-info">
+              <text class="item-hot" wx:if="{{item.hot}}">{{item.hot}}</text>
+              <text class="item-time">{{formatTime(item.publishTime)}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+    <view class="no-data" wx:else>
+      <text>请选择一个站点查看热搜</text>
+    </view>
+  </view>
+</view> 

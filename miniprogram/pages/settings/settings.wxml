@@ -1,0 +1,94 @@
+<view class="container {{settings.theme === 'dark' ? 'dark-theme' : ''}}">
+  <view class="settings-group">
+    <view class="group-title">显示设置</view>
+    
+    <!-- 每个站点显示的热点数量 -->
+    <view class="setting-item number-setting">
+      <view class="setting-label">每个站点显示的热点数量</view>
+      <view class="number-preview">
+        <view class="preview-item" 
+              wx:for="{{itemsPerSiteOptions}}" 
+              wx:key="*this"
+              style="opacity: {{settings.itemsPerSite >= item ? 1 : 0.3}}">
+          <view class="preview-rank">{{index + 1}}</view>
+          <view class="preview-line"></view>
+        </view>
+      </view>
+      <view class="number-slider">
+        <slider 
+          min="0" 
+          max="{{itemsPerSiteOptions.length - 1}}" 
+          value="{{itemsPerSiteOptions.indexOf(settings.itemsPerSite)}}"
+          activeColor="#3498db"
+          backgroundColor="#e0e0e0"
+          block-size="24"
+          bindchange="onItemsPerSiteChange"
+          bindchanging="onItemsPerSiteChanging"
+        />
+        <view class="slider-marks">
+          <view class="mark" 
+                wx:for="{{itemsPerSiteOptions}}" 
+                wx:key="*this"
+                style="left: {{index * (100 / (itemsPerSiteOptions.length - 1))}}%">
+            {{item}}
+          </view>
+        </view>
+      </view>
+      <view class="number-value">{{settings.itemsPerSite}}条</view>
+    </view>
+
+    <!-- 是否显示热点摘要 -->
+    <view class="setting-item">
+      <view class="setting-label">显示热点摘要</view>
+      <switch checked="{{settings.showSummary}}" bindchange="onShowSummaryChange" color="#3498db"/>
+    </view>
+
+    <!-- 是否显示热点时间 -->
+    <view class="setting-item">
+      <view class="setting-label">显示热点时间</view>
+      <switch checked="{{settings.showTime}}" bindchange="onShowTimeChange" color="#3498db"/>
+    </view>
+
+    <!-- 是否显示热点热度 -->
+    <view class="setting-item">
+      <view class="setting-label">显示热点热度</view>
+      <switch checked="{{settings.showHot}}" bindchange="onShowHotChange" color="#3498db"/>
+    </view>
+  </view>
+
+  <view class="settings-group">
+    <view class="group-title">主题设置</view>
+    
+    <!-- 主题选择 -->
+    <view class="setting-item">
+      <view class="setting-label">主题</view>
+      <radio-group bindchange="onThemeChange">
+        <label class="radio">
+          <radio value="light" checked="{{settings.theme === 'light'}}"/>浅色
+        </label>
+        <label class="radio">
+          <radio value="dark" checked="{{settings.theme === 'dark'}}"/>深色
+        </label>
+      </radio-group>
+    </view>
+  </view>
+
+  <view class="settings-group">
+    <view class="group-title">数据设置</view>
+    
+    <!-- 数据刷新间隔 -->
+    <view class="setting-item">
+      <view class="setting-label">数据刷新间隔</view>
+      <picker bindchange="onRefreshIntervalChange" value="{{refreshIntervalOptions.indexOf(settings.refreshInterval)}}" range="{{refreshIntervalOptions}}">
+        <view class="picker">
+          {{settings.refreshInterval}}分钟
+        </view>
+      </picker>
+    </view>
+  </view>
+
+  <!-- 重置按钮 -->
+  <view class="reset-button" bindtap="resetSettings">
+    恢复默认设置
+  </view>
+</view> 

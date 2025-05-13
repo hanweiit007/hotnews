@@ -1,28 +1,55 @@
 {
-  "appid": "wx99e847177c4a86ef",
-  "compileType": "miniprogram",
-  "libVersion": "3.8.0",
+  "description": "项目配置文件",
   "packOptions": {
     "ignore": [],
     "include": []
   },
+  "miniprogramRoot": "miniprogram/",
+  "cloudfunctionRoot": "cloudfunctions/",
   "setting": {
-    "coverView": true,
+    "urlCheck": true,
     "es6": true,
-    "postcss": true,
-    "minified": true,
     "enhance": true,
+    "postcss": true,
+    "preloadBackgroundData": false,
+    "minified": true,
+    "newFeature": false,
+    "coverView": true,
+    "nodeModules": false,
+    "autoAudits": false,
     "showShadowRootInWxmlPanel": true,
-    "packNpmRelationList": [],
+    "scopeDataCheck": false,
+    "uglifyFileName": false,
+    "checkInvalidKey": true,
+    "checkSiteMap": true,
+    "uploadWithSourceMap": true,
+    "compileHotReLoad": false,
+    "lazyloadPlaceholderEnable": false,
+    "useMultiFrameRuntime": true,
+    "useApiHook": true,
+    "useApiHostProcess": true,
     "babelSetting": {
       "ignore": [],
       "disablePlugins": [],
       "outputPath": ""
-    }
+    },
+    "enableEngineNative": false,
+    "useIsolateContext": true,
+    "userConfirmedBundleSwitch": false,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "showES6CompileOption": false
   },
+  "compileType": "miniprogram",
+  "libVersion": "3.0.2",
+  "appid": "wx99e847177c4a86ef",
+  "projectname": "hotnews",
   "condition": {},
+  "cloudfunctionTemplateRoot": "cloudfunctionTemplate/",
   "editorSetting": {
     "tabIndent": "insertSpaces",
     "tabSize": 2
-  }
+  },
+  "srcMiniprogramRoot": "miniprogram/"
 }
