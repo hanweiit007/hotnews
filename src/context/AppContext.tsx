@@ -42,58 +42,91 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [settings.updateInterval]);
 
   const loadInitialData = async () => {
+    console.log('Starting to load initial data...');
     setIsLoading(true);
     try {
-      // 获取网站数据
+      // 获取站点数据
+      console.log('Fetching sites...');
       const sitesData = await apiService.getSites();
-      
-      // 尝试获取热搜数据
-      let hotItemsData: HotItem[] = [];
-      try {
-        hotItemsData = await apiService.getAllHotItems(3);
-      } catch (apiError) {
-        console.error('热搜数据获取失败:', apiError);
-      }
-      
+      console.log('Sites fetched:', sitesData);
       setSites(sitesData);
-      setAllHotItems(hotItemsData);
-      setLastUpdated(new Date());
+
+      // 获取热点数据，添加重试逻辑
+      let retryCount = 0;
+      const maxRetries = 3;
+      let hotItemsData: HotItem[] = [];
+
+      while (retryCount < maxRetries) {
+        try {
+          console.log(`Attempt ${retryCount + 1} to fetch hot items...`);
+          hotItemsData = await apiService.getAllHotItems();
+          console.log('Hot items fetched successfully:', hotItemsData);
+          
+          // 验证数据
+          if (Array.isArray(hotItemsData) && hotItemsData.length > 0) {
+            console.log(`Setting ${hotItemsData.length} hot items to state`);
+            setAllHotItems(hotItemsData);
+            setLastUpdated(new Date());
+            break;
+          } else {
+            throw new Error('Invalid or empty hot items data');
+          }
+        } catch (error) {
+          console.error(`Attempt ${retryCount + 1} failed:`, error);
+          retryCount++;
+          if (retryCount < maxRetries) {
+            console.log(`Waiting ${retryCount * 1000}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
+          } else {
+            console.error('All retry attempts failed');
+            throw error;
+          }
+        }
+      }
     } catch (error) {
-      console.error('Failed to load initial data:', error);
+      console.error('Error loading initial data:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const refreshData = async () => {
+    console.log('Refreshing data...');
     setIsLoading(true);
     try {
-      // 使用API获取热搜数据
-      let hotItemsData: HotItem[] = [];
-      try {
-        hotItemsData = await apiService.getAllHotItems(3);
-      } catch (apiError) {
-        console.error('刷新时数据获取失败:', apiError);
-      }
+      const [sitesData, hotItemsData] = await Promise.all([
+        apiService.getSites(),
+        apiService.getAllHotItems()
+      ]);
       
-      if (hotItemsData.length > 0) {
+      console.log('Refresh results:', {
+        sitesCount: sitesData.length,
+        hotItemsCount: hotItemsData.length
+      });
+
+      // 验证数据
+      if (Array.isArray(hotItemsData) && hotItemsData.length > 0) {
+        setSites(sitesData);
         setAllHotItems(hotItemsData);
         setLastUpdated(new Date());
+      } else {
+        console.error('Invalid or empty hot items data received');
       }
     } catch (error) {
-      console.error('Failed to refresh data:', error);
+      console.error('Error refreshing data:', error);
     } finally {
       setIsLoading(false);
     }
-    
-    return Promise.resolve();
   };
 
   const getSiteHotItems = async (siteId: SiteId, limit: number = 10): Promise<HotItem[]> => {
+    console.log(`Fetching hot items for site ${siteId}...`);
     try {
-      return await apiService.getSiteHotItems(siteId, limit);
+      const items = await apiService.getSiteHotItems(siteId, limit);
+      console.log(`Fetched ${items.length} items for site ${siteId}`);
+      return items;
     } catch (error) {
-      console.error(`Failed to get hot items for site ${siteId}:`, error);
+      console.error(`Error fetching hot items for site ${siteId}:`, error);
       return [];
     }
   };

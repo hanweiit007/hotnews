@@ -11,6 +11,14 @@ import {
   Center,
   Link,
   Icon,
+  useToast,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
 } from '@chakra-ui/react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiExternalLink, FiShare2 } from 'react-icons/fi';
@@ -25,7 +33,9 @@ const ItemDetailPage: React.FC = () => {
   const { getHotItemDetails, sites } = useApp();
   const [item, setItem] = useState<HotItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const navigate = useNavigate();
+  const toast = useToast();
   
   useEffect(() => {
     if (itemId) {
@@ -48,8 +58,19 @@ const ItemDetailPage: React.FC = () => {
   };
   
   const handleOpenOriginal = () => {
+    if (!item) return;
+    
+    if (item.sourceId === 'zhihu') {
+      setIsConfirmOpen(true);
+    } else {
+      window.open(item.url, '_blank');
+    }
+  };
+  
+  const handleConfirmOpen = () => {
     if (item) {
       window.open(item.url, '_blank');
+      setIsConfirmOpen(false);
     }
   };
   
@@ -214,6 +235,26 @@ const ItemDetailPage: React.FC = () => {
       
       {/* Related Items (Optional) */}
       {/* Additional content can be added here */}
+      
+      {/* Confirmation Modal */}
+      <Modal isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>跳转到知乎</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text>即将跳转到知乎查看原文，是否继续？</Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={() => setIsConfirmOpen(false)}>
+              取消
+            </Button>
+            <Button colorScheme="blue" onClick={handleConfirmOpen}>
+              确认跳转
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

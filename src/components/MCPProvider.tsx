@@ -16,14 +16,9 @@ const MCPProvider: React.FC<MCPProviderProps> = ({ children }) => {
   const [retryCount, setRetryCount] = useState(0);
   const [mcpDebugInfo, setMcpDebugInfo] = useState<any>(null);
   const [manualMcpTest, setManualMcpTest] = useState<any>(null);
-  const [isCursorEnv, setIsCursorEnv] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const checkEnvironmentAndMCP = async () => {
-      // 检查是否在Cursor环境中
-      const cursorCheck = mcpDependencyChecker.checkCursorEnvironment();
-      setIsCursorEnv(cursorCheck);
-      
+    const checkMcpService = async () => {
       try {
         // 检查 MCP 服务状态
         await initMcpCheck();
@@ -34,10 +29,6 @@ const MCPProvider: React.FC<MCPProviderProps> = ({ children }) => {
           exists: mcpExists,
           methods: mcpExists ? Object.keys((window as any).mcp || {}) : [],
           hasGetHotNews: mcpExists && typeof (window as any).mcp?.get_hot_news === 'function',
-          cursorInfo: {
-            version: (window as any).__CURSOR_VERSION__ || 'unknown',
-            isCursor: !!(window as any).__CURSOR_VERSION__,
-          },
         };
         setMcpDebugInfo(mcpInfo);
         
@@ -52,7 +43,7 @@ const MCPProvider: React.FC<MCPProviderProps> = ({ children }) => {
             setTimeout(() => setRetryCount(prev => prev + 1), 1000);
           } else {
             console.error('MCP 服务初始化失败');
-            setError('无法连接到 MCP 服务。请确保 Cursor 编辑器已正确配置并启动 MCP 服务。');
+            setError('无法连接到 MCP 服务。请确保本地 MCP 服务已正确配置并运行。');
           }
         }
       } catch (err) {
@@ -62,7 +53,7 @@ const MCPProvider: React.FC<MCPProviderProps> = ({ children }) => {
       }
     };
 
-    checkEnvironmentAndMCP();
+    checkMcpService();
   }, [retryCount]);
 
   // 手动测试MCP服务
@@ -103,18 +94,11 @@ const MCPProvider: React.FC<MCPProviderProps> = ({ children }) => {
           <Text color="red.500" fontSize="xl" fontWeight="bold">MCP 服务不可用</Text>
           <Text>{error}</Text>
           
-          {isCursorEnv === false && (
-            <Alert status="warning" borderRadius="md">
-              <AlertIcon />
-              检测到当前不在Cursor编辑器环境中，MCP功能可能无法正常工作。请在Cursor编辑器中打开此应用。
-            </Alert>
-          )}
-          
           <VStack align="start" spacing={2} bg="gray.50" p={4} borderRadius="md" w="100%">
             <Text fontSize="md" fontWeight="bold">请确保：</Text>
-            <Text>1. Cursor 编辑器正在运行</Text>
+            <Text>1. 本地 MCP 服务正在运行</Text>
             <Text>2. .cursor/hotnews-mcp.json 配置正确</Text>
-            <Text>3. @wopal/mcp-server-hotnews 包已安装</Text>
+            <Text>3. 本地服务端口 3001 可访问</Text>
           </VStack>
           
           <Button colorScheme="blue" onClick={testMcpService}>
@@ -175,13 +159,6 @@ const MCPProvider: React.FC<MCPProviderProps> = ({ children }) => {
           <Spinner size="xl" color="blue.500" />
           <Text>正在连接 MCP 服务...</Text>
           <Text fontSize="sm">正在尝试第 {retryCount + 1} 次连接</Text>
-          
-          {isCursorEnv === false && (
-            <Alert status="warning" size="sm" maxW="350px">
-              <AlertIcon />
-              检测到非Cursor环境，MCP可能不可用
-            </Alert>
-          )}
           
           <Button mt={4} colorScheme="blue" onClick={testMcpService}>
             手动测试 MCP 服务

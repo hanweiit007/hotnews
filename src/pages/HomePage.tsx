@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   VStack,
@@ -9,6 +9,23 @@ import {
   Spinner,
   Center,
   Divider,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  Button,
+  Grid,
+  GridItem,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  Badge,
+  Tooltip,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 
@@ -18,20 +35,18 @@ import { HotItem } from '../types';
 const HomePage: React.FC = () => {
   const { sites, allHotItems, isLoading, lastUpdated, refreshData } = useApp();
   const navigate = useNavigate();
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<HotItem | null>(null);
 
   useEffect(() => {
     // Initial data load handled by AppContext
-  }, []);
-
-  const handleItemClick = (item: HotItem) => {
-    // 导航到详情页
-    navigate(`/item/${item.id}`);
-  };
-
-  const handleSiteHeaderClick = (siteId: string) => {
-    // 导航到站点页
-    navigate(`/site/${siteId}`);
-  };
+    console.log('HomePage mounted, current data:', {
+      sitesCount: sites.length,
+      hotItemsCount: allHotItems.length,
+      isLoading,
+      lastUpdated
+    });
+  }, [sites, allHotItems, isLoading, lastUpdated]);
 
   // 按源站点分组项目
   const itemsBySource = allHotItems.reduce<Record<string, HotItem[]>>((acc, item) => {
@@ -42,9 +57,113 @@ const HomePage: React.FC = () => {
     return acc;
   }, {});
 
+  const handleItemClick = (item: HotItem) => {
+    setSelectedItem(item);
+    setIsConfirmOpen(true);
+  };
+
+  const handleConfirmOpen = () => {
+    if (selectedItem) {
+      window.open(selectedItem.url, '_blank');
+      setIsConfirmOpen(false);
+      setSelectedItem(null);
+    }
+  };
+
+  const handleSiteClick = (siteId: string) => {
+    navigate(`/site/${siteId}`);
+  };
+
   const handleRefresh = () => {
     refreshData();
   };
+
+  // 渲染单个热点项目
+  const renderHotItem = (item: HotItem, index: number) => (
+    <Box
+      key={item.id}
+      p={3}
+      borderRadius="md"
+      boxShadow="sm"
+      bg="white"
+      borderWidth="1px"
+      borderColor="gray.100"
+      cursor="pointer"
+      onClick={() => handleItemClick(item)}
+      _hover={{ transform: 'scale(1.01)', boxShadow: 'md' }}
+      transition="all 0.2s"
+      mb={3}
+    >
+      <Flex direction="column" gap={1.5}>
+        {/* 标题和排名 */}
+        <Flex alignItems="flex-start" gap={2}>
+          <Badge 
+            colorScheme="red" 
+            borderRadius="full" 
+            px={2}
+            py={0.5}
+            fontSize="xs"
+            minW="20px"
+            textAlign="center"
+            flexShrink={0}
+            mt={0.5}
+          >
+            {index + 1}
+          </Badge>
+          <Text 
+            fontWeight="medium" 
+            fontSize="sm"
+            lineHeight="1.5"
+            flex="1"
+            wordBreak="break-all"
+            whiteSpace="normal"
+          >
+            {item.title}
+          </Text>
+        </Flex>
+
+        {/* 摘要（如果有） */}
+        {item.summary && (
+          <Text 
+            fontSize="xs" 
+            color="gray.600"
+            noOfLines={2}
+            pl="28px"
+          >
+            {item.summary}
+          </Text>
+        )}
+
+        {/* 底部信息 */}
+        <Flex 
+          justifyContent="space-between" 
+          alignItems="center"
+          pl="28px"
+          fontSize="xs"
+          color="gray.500"
+          flexWrap="wrap"
+          gap={1}
+        >
+          <Text>{item.source}</Text>
+          <Flex gap={2} alignItems="center" flexWrap="wrap">
+            <Text>
+              热度: {item.heatIndex > 10000 
+                ? `${(item.heatIndex / 10000).toFixed(1)}万` 
+                : item.heatIndex}
+            </Text>
+            <Text>
+              {new Date(item.publishTime).toLocaleString('zh-CN', {
+                month: 'numeric',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </Text>
+          </Flex>
+        </Flex>
+      </Flex>
+    </Box>
+  );
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -58,113 +177,102 @@ const HomePage: React.FC = () => {
         </Flex>
       </Box>
 
-      {/* Site Tabs */}
-      <Box py={2} bg="white" borderBottomWidth="1px" borderColor="gray.200">
-        <Flex
-          overflowX="auto"
-          py={1}
-          px={2}
-          css={{
-            '&::-webkit-scrollbar': { display: 'none' },
-            scrollbarWidth: 'none',
-          }}
-        >
+      {/* Site Grid */}
+      <Box py={4} px={4} bg="white" borderBottomWidth="1px" borderColor="gray.200">
+        <Grid templateColumns="repeat(3, 1fr)" gap={4}>
           {sites.map((site) => (
-            <Box
+            <GridItem
               key={site.id}
-              px={4}
-              py={2}
-              mx={1}
-              borderRadius="md"
               cursor="pointer"
-              minWidth="72px"
-              textAlign="center"
-              onClick={() => handleSiteHeaderClick(site.id)}
+              onClick={() => handleSiteClick(site.id)}
             >
-              <Flex direction="column" alignItems="center">
+              <Flex
+                direction="column"
+                alignItems="center"
+                p={3}
+                borderRadius="lg"
+                borderWidth="1px"
+                borderColor="gray.200"
+                _hover={{
+                  bg: 'gray.50',
+                  transform: 'scale(1.02)',
+                  transition: 'all 0.2s',
+                }}
+              >
                 <Flex
                   bg="red.500"
                   color="white"
                   borderRadius="full"
-                  w="30px"
-                  h="30px"
+                  w="40px"
+                  h="40px"
                   justifyContent="center"
                   alignItems="center"
-                  mb={1}
+                  mb={2}
                 >
                   {site.icon}
                 </Flex>
-                <Text fontSize="xs">{site.name.zh}</Text>
+                <Text fontWeight="medium">{site.name.zh}</Text>
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  {itemsBySource[site.id]?.length || 0} 条热点
+                </Text>
               </Flex>
-            </Box>
+            </GridItem>
           ))}
-        </Flex>
+        </Grid>
       </Box>
 
       {/* Main Content */}
-      <Container maxW="container.md" py={4} pb="60px">
+      <Container maxW="container.md" py={4} pb="60px" px={3}>
         {isLoading && allHotItems.length === 0 ? (
           <Center py={10}>
             <Spinner size="lg" color="red.500" />
           </Center>
         ) : (
-          <VStack align="stretch" mt={6}>
+          <Accordion allowMultiple defaultIndex={[0]}>
             {sites.map((site) => {
               const siteItems = itemsBySource[site.id] || [];
-              if (siteItems.length === 0) return null;
-
               return (
-                <Box key={site.id}>
-                  <Heading
-                    size="md"
-                    mb={3}
-                    cursor="pointer"
-                    onClick={() => handleSiteHeaderClick(site.id)}
-                    display="flex"
-                    alignItems="center"
-                  >
-                    {site.name.zh}
-                    <Text fontSize="sm" color="gray.500" ml={2}>
-                      查看更多 &gt;
-                    </Text>
-                  </Heading>
-
-                  {siteItems.map((item) => (
-                    <Box
-                      key={item.id}
-                      p={3}
+                <AccordionItem key={site.id} border="none">
+                  <h2>
+                    <AccordionButton 
+                      py={3}
+                      _hover={{ bg: 'gray.50' }}
                       borderRadius="md"
-                      boxShadow="sm"
-                      bg="white"
-                      borderWidth="1px"
-                      borderColor="gray.100"
-                      cursor="pointer"
-                      onClick={() => handleItemClick(item)}
-                      _hover={{ transform: 'scale(1.01)', boxShadow: 'md' }}
-                      transition="all 0.2s"
-                      mb={2}
                     >
-                      <Text fontWeight="bold" mb={1} isTruncated>
-                        {item.title}
-                      </Text>
-                      <Flex justifyContent="space-between">
-                        <Text fontSize="xs" color="gray.500">
-                          {item.source}
-                        </Text>
-                        <Text fontSize="xs" color="gray.500">
-                          热度: {item.heatIndex > 10000 
-                            ? `${(item.heatIndex / 10000).toFixed(1)}万` 
-                            : item.heatIndex}
-                        </Text>
-                      </Flex>
-                    </Box>
-                  ))}
-
-                  <Divider mt={4} />
-                </Box>
+                      <Box flex="1" textAlign="left">
+                        <Flex alignItems="center">
+                          <Flex
+                            bg="red.500"
+                            color="white"
+                            borderRadius="full"
+                            w="28px"
+                            h="28px"
+                            justifyContent="center"
+                            alignItems="center"
+                            mr={2}
+                          >
+                            {site.icon}
+                          </Flex>
+                          <Text fontWeight="bold" fontSize="sm">{site.name.zh}</Text>
+                          <Badge ml={2} colorScheme="red" fontSize="xs">
+                            {siteItems.length}
+                          </Badge>
+                        </Flex>
+                      </Box>
+                      <AccordionIcon />
+                    </AccordionButton>
+                  </h2>
+                  <AccordionPanel pb={2} px={0}>
+                    <VStack align="stretch" spacing={2}>
+                      {siteItems.slice(0, 10).map((item, index) => 
+                        renderHotItem(item, index)
+                      )}
+                    </VStack>
+                  </AccordionPanel>
+                </AccordionItem>
               );
             })}
-          </VStack>
+          </Accordion>
         )}
       </Container>
 
@@ -195,6 +303,26 @@ const HomePage: React.FC = () => {
           </Text>
         </Flex>
       </Box>
+
+      {/* Confirmation Modal */}
+      <Modal isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>跳转到原文</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text>即将跳转到原文链接，是否继续？</Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={() => setIsConfirmOpen(false)}>
+              取消
+            </Button>
+            <Button colorScheme="blue" onClick={handleConfirmOpen}>
+              确认
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

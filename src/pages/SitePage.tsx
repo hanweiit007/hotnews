@@ -11,7 +11,14 @@ import {
   GridItem,
   Button,
   Select as ChakraSelect,
-  useToast as useChakraToast,
+  useToast,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
 } from '@chakra-ui/react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AttachmentIcon } from '@chakra-ui/icons';
@@ -26,12 +33,10 @@ const SitePage: React.FC = () => {
   const { getSiteHotItems, sites, isLoading } = useApp();
   const [hotItems, setHotItems] = useState<HotItem[]>([]);
   const [sortBy, setSortBy] = useState<'heat' | 'time'>('heat');
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<HotItem | null>(null);
   const navigate = useNavigate();
-  const toast = {
-    show: (options: { title: string; description: string; status: string; duration: number; isClosable: boolean }) => {
-      console.log(options.title, options.description);
-    }
-  };
+  const toast = useToast();
   
   const site = sites.find(s => s.id === siteId);
   
@@ -49,7 +54,7 @@ const SitePage: React.FC = () => {
       setHotItems(items);
     } catch (error) {
       console.error('Failed to load site data:', error);
-      toast.show({
+      toast({
         title: '加载失败',
         description: '无法获取热点数据，请稍后再试',
         status: 'error',
@@ -60,7 +65,16 @@ const SitePage: React.FC = () => {
   };
   
   const handleItemClick = (item: HotItem) => {
-    navigate(`/item/${item.id}`);
+    setSelectedItem(item);
+    setIsConfirmOpen(true);
+  };
+  
+  const handleConfirmOpen = () => {
+    if (selectedItem) {
+      window.open(selectedItem.url, '_blank');
+      setIsConfirmOpen(false);
+      setSelectedItem(null);
+    }
   };
   
   const handleShare = () => {
@@ -71,7 +85,7 @@ const SitePage: React.FC = () => {
         url: window.location.href,
       }).catch(error => console.log('分享失败:', error));
     } else {
-      toast.show({
+      toast({
         title: '分享功能不可用',
         description: '您的浏览器不支持原生分享功能',
         status: 'info',
@@ -170,6 +184,26 @@ const SitePage: React.FC = () => {
           </VStack>
         )}
       </Box>
+      
+      {/* Confirmation Modal */}
+      <Modal isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>跳转到原文</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text>即将跳转到原文链接，是否继续？</Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={() => setIsConfirmOpen(false)}>
+              取消
+            </Button>
+            <Button colorScheme="blue" onClick={handleConfirmOpen}>
+              确认
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

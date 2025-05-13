@@ -1,10 +1,9 @@
 {
     "mcpServers": {
         "mcp-server-hotnews": {
-            "command": "npx",
+            "command": "node",
             "args": [
-                "-y",
-                "@wopal/mcp-server-hotnews"
+                "/Users/hanwei/Documents/cursor/mcp-hotnews-server-main/src/index.js"
             ]
         }
     }
