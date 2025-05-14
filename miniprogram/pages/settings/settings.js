@@ -15,7 +15,12 @@ Page({
     refreshIntervalOptions: [5, 10, 15, 30, 60],
     itemsPerSiteOptions: [5, 10, 15, 20, 30],
     itemsPerSiteLabels: ['5条', '10条', '15条', '20条', '30条'],
-    tempItemsPerSite: null // 用于存储拖动时的临时值
+    tempItemsPerSite: null, // 用于存储拖动时的临时值
+    recommendedItemsPerSite: 3,
+    siteItemsPerSite: 10,
+    autoRefresh: true,
+    darkMode: false,
+    version: '1.0.0'
   },
 
   onLoad: function() {
@@ -34,7 +39,11 @@ Page({
     };
     that.setData({ 
       settings: settings,
-      tempItemsPerSite: settings.itemsPerSite
+      tempItemsPerSite: settings.itemsPerSite,
+      recommendedItemsPerSite: globalSettings.recommendedItemsPerSite || 3,
+      siteItemsPerSite: globalSettings.siteItemsPerSite || 10,
+      autoRefresh: globalSettings.autoRefresh !== false,
+      darkMode: globalSettings.darkMode || false
     });
   },
 
@@ -51,7 +60,11 @@ Page({
       'settings.showHot': globalSettings.showHot !== false,
       'settings.theme': globalSettings.theme || 'light',
       'settings.refreshInterval': globalSettings.refreshInterval || 5,
-      tempItemsPerSite: globalSettings.itemsPerSite || 50
+      tempItemsPerSite: globalSettings.itemsPerSite || 50,
+      recommendedItemsPerSite: globalSettings.recommendedItemsPerSite || 3,
+      siteItemsPerSite: globalSettings.siteItemsPerSite || 10,
+      autoRefresh: globalSettings.autoRefresh !== false,
+      darkMode: globalSettings.darkMode || false
     });
   },
 
@@ -129,7 +142,18 @@ Page({
 
   saveSettings: function() {
     var that = this;
-    app.saveSettings(that.data.settings);
+    // 合并所有设置
+    var settings = {
+      ...that.data.settings,
+      recommendedItemsPerSite: that.data.recommendedItemsPerSite,
+      siteItemsPerSite: that.data.siteItemsPerSite,
+      autoRefresh: that.data.autoRefresh,
+      darkMode: that.data.darkMode
+    };
+    
+    app.globalData.settings = settings;
+    app.saveSettings(settings);
+    
     // 通知首页更新设置
     var pages = getCurrentPages();
     var indexPage = pages.find(function(page) {
@@ -138,6 +162,7 @@ Page({
     if (indexPage) {
       indexPage.loadData();
     }
+    
     wx.showToast({
       title: '设置已保存',
       icon: 'success',
@@ -211,5 +236,39 @@ Page({
       content: '热点新闻小程序 v1.0.0\n\n聚合多个平台的热点新闻，实时更新。',
       showCancel: false
     });
+  },
+
+  // 处理推荐模式热点数量变化
+  handleRecommendedItemsChange: function(e) {
+    var value = e.detail.value
+    this.setData({
+      recommendedItemsPerSite: value
+    })
+    this.saveSettings()
+  },
+
+  // 处理站点模式热点数量变化
+  handleSiteItemsChange: function(e) {
+    var value = e.detail.value
+    this.setData({
+      siteItemsPerSite: value
+    })
+    this.saveSettings()
+  },
+
+  // 处理自动刷新开关变化
+  handleAutoRefreshChange: function(e) {
+    this.setData({
+      autoRefresh: e.detail.value
+    })
+    this.saveSettings()
+  },
+
+  // 处理深色模式开关变化
+  handleDarkModeChange: function(e) {
+    this.setData({
+      darkMode: e.detail.value
+    })
+    this.saveSettings()
   }
 }); 

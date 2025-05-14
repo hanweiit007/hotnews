@@ -1,42 +1,73 @@
 <view class="container {{settings.theme === 'dark' ? 'dark-theme' : ''}}">
   <view class="settings-group">
-    <view class="group-title">显示设置</view>
+    <view class="group-title">热点显示设置</view>
     
-    <!-- 每个站点显示的热点数量 -->
-    <view class="setting-item number-setting">
-      <view class="setting-label">每个站点显示的热点数量</view>
-      <view class="number-preview">
-        <view class="preview-item" 
-              wx:for="{{itemsPerSiteOptions}}" 
-              wx:key="*this"
-              style="opacity: {{settings.itemsPerSite >= item ? 1 : 0.3}}">
-          <view class="preview-rank">{{index + 1}}</view>
-          <view class="preview-line"></view>
-        </view>
+    <!-- 推荐模式热点数量设置 -->
+    <view class="setting-item">
+      <view class="setting-label">
+        <text class="label-text">推荐模式热点数量</text>
+        <text class="label-desc">每个站点显示的热点数量（1-10）</text>
       </view>
-      <view class="number-slider">
+      <view class="setting-control">
         <slider 
-          min="0" 
-          max="{{itemsPerSiteOptions.length - 1}}" 
-          value="{{itemsPerSiteOptions.indexOf(settings.itemsPerSite)}}"
-          activeColor="#3498db"
-          backgroundColor="#e0e0e0"
-          block-size="24"
-          bindchange="onItemsPerSiteChange"
-          bindchanging="onItemsPerSiteChanging"
+          min="1" 
+          max="10" 
+          value="{{recommendedItemsPerSite}}" 
+          show-value 
+          activeColor="#E53E3E"
+          bindchange="handleRecommendedItemsChange"
         />
-        <view class="slider-marks">
-          <view class="mark" 
-                wx:for="{{itemsPerSiteOptions}}" 
-                wx:key="*this"
-                style="left: {{index * (100 / (itemsPerSiteOptions.length - 1))}}%">
-            {{item}}
-          </view>
-        </view>
       </view>
-      <view class="number-value">{{settings.itemsPerSite}}条</view>
     </view>
 
+    <!-- 站点模式热点数量设置 -->
+    <view class="setting-item">
+      <view class="setting-label">
+        <text class="label-text">站点模式热点数量</text>
+        <text class="label-desc">单个站点显示的热点数量（5-20）</text>
+      </view>
+      <view class="setting-control">
+        <slider 
+          min="5" 
+          max="20" 
+          value="{{siteItemsPerSite}}" 
+          show-value 
+          activeColor="#E53E3E"
+          bindchange="handleSiteItemsChange"
+        />
+      </view>
+    </view>
+  </view>
+
+  <view class="settings-group">
+    <view class="group-title">其他设置</view>
+    
+    <!-- 自动刷新设置 -->
+    <view class="setting-item">
+      <view class="setting-label">
+        <text class="label-text">自动刷新</text>
+        <text class="label-desc">每5分钟自动刷新一次</text>
+      </view>
+      <view class="setting-control">
+        <switch checked="{{autoRefresh}}" bindchange="handleAutoRefreshChange" color="#E53E3E" />
+      </view>
+    </view>
+
+    <!-- 深色模式设置 -->
+    <view class="setting-item">
+      <view class="setting-label">
+        <text class="label-text">深色模式</text>
+        <text class="label-desc">跟随系统</text>
+      </view>
+      <view class="setting-control">
+        <switch checked="{{darkMode}}" bindchange="handleDarkModeChange" color="#E53E3E" />
+      </view>
+    </view>
+  </view>
+
+  <view class="settings-group">
+    <view class="group-title">显示设置</view>
+    
     <!-- 是否显示热点摘要 -->
     <view class="setting-item">
       <view class="setting-label">显示热点摘要</view>
@@ -106,5 +137,10 @@
       <text>关于我们</text>
       <text class="arrow">></text>
     </view>
+  </view>
+
+  <!-- 版本信息 -->
+  <view class="version-info">
+    <text>当前版本：{{version}}</text>
   </view>
 </view> 

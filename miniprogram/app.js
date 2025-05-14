@@ -103,8 +103,21 @@ App({
   },
 
   // 保存设置
-  saveSettings: function() {
-    wx.setStorageSync('settings', this.globalData.settings)
+  saveSettings: function(settings) {
+    // 合并现有设置和新设置
+    var currentSettings = this.globalData.settings || {}
+    var newSettings = {
+      ...currentSettings,
+      ...settings,
+      // 确保这些字段始终存在
+      recommendedItemsPerSite: settings.recommendedItemsPerSite || 3,
+      siteItemsPerSite: settings.siteItemsPerSite || 10,
+      autoRefresh: settings.autoRefresh !== undefined ? settings.autoRefresh : true,
+      darkMode: settings.darkMode !== undefined ? settings.darkMode : false
+    }
+    
+    this.globalData.settings = newSettings
+    wx.setStorageSync('settings', newSettings)
   },
 
   initData: function() {

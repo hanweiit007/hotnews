@@ -77,25 +77,67 @@
   <!-- 热点列表 -->
   <view class="hot-items">
     <block wx:if="{{selectedSite}}">
-      <view class="site-header">
-        <text class="site-title">{{selectedSite.name}}热搜</text>
-      </view>
-      <view class="items-list">
-        <view class="hot-item" 
-              wx:for="{{groupedHotItems[selectedSite.id]}}" 
-              wx:key="id"
-              data-item="{{item}}"
-              bindtap="handleItemClick">
-          <view class="item-rank {{item.rank <= 3 ? 'top-' + item.rank : ''}}">{{item.rank}}</view>
-          <view class="item-content">
-            <view class="item-title">{{item.title}}</view>
-            <view class="item-info">
-              <text class="item-hot" wx:if="{{item.hot}}">{{item.hot}}</text>
-              <text class="item-time">{{formatTime(item.publishTime)}}</text>
+      <block wx:if="{{selectedSite.id === 'recommended'}}">
+        <view class="recommended-list">
+          <!-- 折叠控制按钮 -->
+          <view class="collapse-controls">
+            <view class="collapse-btn" bindtap="toggleAllSites">
+              <text class="collapse-icon {{isAllCollapsed ? 'collapsed' : ''}}">▼</text>
+              <text>{{isAllCollapsed ? '全部展开' : '全部折叠'}}</text>
+            </view>
+          </view>
+
+          <block wx:for="{{sites}}" wx:key="id" wx:for-item="site">
+            <block wx:if="{{site.id !== 'recommended' && groupedHotItems[site.id]}}">
+              <view class="site-section">
+                <view class="site-header" bindtap="toggleSiteCollapse" data-site-id="{{site.id}}">
+                  <text class="site-title">{{site.name}}热搜</text>
+                  <text class="collapse-icon {{collapsedSites[site.id] ? 'collapsed' : ''}}">▼</text>
+                </view>
+                <view class="items-list {{collapsedSites[site.id] ? 'collapsed' : ''}}">
+                  <view class="hot-item" 
+                        wx:for="{{groupedHotItems[site.id]}}" 
+                        wx:key="id"
+                        wx:if="{{index < recommendedItemsPerSite}}"
+                        data-item="{{item}}"
+                        bindtap="handleItemClick">
+                    <view class="item-rank {{item.rank <= 3 ? 'top-' + item.rank : ''}}">{{item.rank}}</view>
+                    <view class="item-content">
+                      <view class="item-title">{{item.title}}</view>
+                      <view class="item-info">
+                        <text class="item-hot" wx:if="{{item.hot}}">{{item.hot}}</text>
+                        <text class="item-time">{{formatTime(item.publishTime)}}</text>
+                      </view>
+                    </view>
+                  </view>
+                </view>
+              </view>
+            </block>
+          </block>
+        </view>
+      </block>
+      <block wx:else>
+        <view class="site-header">
+          <text class="site-title">{{selectedSite.name}}热搜</text>
+        </view>
+        <view class="items-list">
+          <view class="hot-item" 
+                wx:for="{{groupedHotItems[selectedSite.id]}}" 
+                wx:key="id"
+                wx:if="{{index < siteItemsPerSite}}"
+                data-item="{{item}}"
+                bindtap="handleItemClick">
+            <view class="item-rank {{item.rank <= 3 ? 'top-' + item.rank : ''}}">{{item.rank}}</view>
+            <view class="item-content">
+              <view class="item-title">{{item.title}}</view>
+              <view class="item-info">
+                <text class="item-hot" wx:if="{{item.hot}}">{{item.hot}}</text>
+                <text class="item-time">{{formatTime(item.publishTime)}}</text>
+              </view>
             </view>
           </view>
         </view>
-      </view>
+      </block>
     </block>
     <view class="no-data" wx:else>
       <text>请选择一个站点查看热搜</text>

@@ -9,11 +9,14 @@ Page({
     lastUpdated: null,
     selectedSite: null,
     groupedHotItems: {},
-    itemsPerSite: null,
+    recommendedItemsPerSite: 3,
+    siteItemsPerSite: 10,
     scrollLeft: 0,
     showSiteEdit: false,
     dragItem: null,
-    dragStartY: 0
+    dragStartY: 0,
+    collapsedSites: {}, // 存储每个站点的折叠状态
+    isAllCollapsed: false // 存储全部折叠状态
   },
 
   onLoad: function() {
@@ -22,9 +25,16 @@ Page({
 
   onShow: function() {
     // 每次显示页面时检查设置是否改变
-    var currentItemsPerSite = app.globalData.settings.itemsPerSite
-    if (this.data.itemsPerSite !== currentItemsPerSite) {
-      this.setData({ itemsPerSite: currentItemsPerSite })
+    var settings = app.globalData.settings || {}
+    var currentRecommendedItems = settings.recommendedItemsPerSite || 3
+    var currentSiteItems = settings.siteItemsPerSite || 10
+    
+    if (this.data.recommendedItemsPerSite !== currentRecommendedItems || 
+        this.data.siteItemsPerSite !== currentSiteItems) {
+      this.setData({ 
+        recommendedItemsPerSite: currentRecommendedItems,
+        siteItemsPerSite: currentSiteItems
+      })
       this.loadData()
     }
   },
@@ -39,8 +49,9 @@ Page({
     this.setData({ isLoading: true })
     var that = this
     
-    // 确保 itemsPerSite 有默认值
-    var itemsPerSite = app.globalData.settings.itemsPerSite || 50
+    // 获取当前设置
+    var settings = app.globalData.settings || {}
+    var itemsPerSite = settings.siteItemsPerSite || 10
     
     app.getAllHotItems(itemsPerSite)
       .then(function(result) {
@@ -55,14 +66,22 @@ Page({
             name: site.name,
             mcpId: site.mcpId,
             icon: that.getSiteIcon(site.id),
-            pinned: (app.globalData.settings.pinnedSites || []).indexOf(site.id) !== -1
+            pinned: (settings.pinnedSites || []).indexOf(site.id) !== -1
           }
+        })
+
+        // 添加推荐选项
+        sites.unshift({
+          id: 'recommended',
+          name: '推荐',
+          icon: '🔥',
+          pinned: true
         })
 
         // 根据置顶状态和配置顺序排序
         sites.sort(function(a, b) {
           if (a.pinned !== b.pinned) return b.pinned - a.pinned
-          var siteOrder = app.globalData.settings.siteOrder || []
+          var siteOrder = settings.siteOrder || []
           var orderA = siteOrder.indexOf(a.id)
           var orderB = siteOrder.indexOf(b.id)
           if (orderA === -1) orderA = 999
@@ -70,10 +89,10 @@ Page({
           return orderA - orderB
         })
 
-        // 如果没有选中的站点，默认选中第一个站点
+        // 如果没有选中的站点，默认选中推荐
         var selectedSite = that.data.selectedSite
-        if (!selectedSite && sites.length > 0) {
-          selectedSite = sites[0]
+        if (!selectedSite) {
+          selectedSite = sites[0] // 推荐选项
         }
 
         // 更新全局数据
@@ -81,13 +100,27 @@ Page({
         app.globalData.hotItemsBySite = result.hotItemsBySite
         app.globalData.lastUpdated = result.lastUpdated
 
+        // 确保热点数据正确格式化
+        var groupedHotItems = {}
+        if (result.hotItemsBySite) {
+          Object.keys(result.hotItemsBySite).forEach(function(siteId) {
+            groupedHotItems[siteId] = result.hotItemsBySite[siteId].map(function(item, index) {
+              return {
+                ...item,
+                rank: index + 1
+              }
+            })
+          })
+        }
+
         that.setData({
           sites: sites,
           hotItemsBySite: result.hotItemsBySite || {},
           lastUpdated: result.lastUpdated || new Date().toISOString(),
-          itemsPerSite: itemsPerSite,
-          groupedHotItems: result.hotItemsBySite || {},
-          selectedSite: selectedSite
+          groupedHotItems: groupedHotItems,
+          selectedSite: selectedSite,
+          recommendedItemsPerSite: settings.recommendedItemsPerSite || 3,
+          siteItemsPerSite: settings.siteItemsPerSite || 10
         })
 
         // 计算滚动位置
@@ -145,9 +178,8 @@ Page({
 
   // 处理站点选择
   handleSiteSelect: function(e) {
-    var site = e.currentTarget.dataset.site
-    this.setData({ selectedSite: site })
-    this.updateScrollPosition()
+    var site = e.currentTarget.dataset.site;
+    this.setData({ selectedSite: site });
   },
 
   // 更新滚动位置
@@ -290,5 +322,28 @@ Page({
     return d.getFullYear() + '-' + 
            String(d.getMonth() + 1).padStart(2, '0') + '-' + 
            String(d.getDate()).padStart(2, '0')
-  }
+  },
+
+  // 切换站点折叠状态
+  toggleSiteCollapse: function(e) {
+    const siteId = e.currentTarget.dataset.siteId;
+    const collapsedSites = this.data.collapsedSites;
+    collapsedSites[siteId] = !collapsedSites[siteId];
+    this.setData({ collapsedSites });
+  },
+
+  // 切换所有站点折叠状态
+  toggleAllSites: function() {
+    const isCollapse = !this.data.isAllCollapsed;
+    const collapsedSites = {};
+    this.data.sites.forEach(site => {
+      if (site.id !== 'recommended') {
+        collapsedSites[site.id] = isCollapse;
+      }
+    });
+    this.setData({ 
+      collapsedSites,
+      isAllCollapsed: isCollapse
+    });
+  },
 }) 
