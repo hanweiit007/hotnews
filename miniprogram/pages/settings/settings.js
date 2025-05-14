@@ -3,7 +3,9 @@ var app = getApp();
 Page({
   data: {
     settings: {
-      itemsPerSite: 10,
+      itemsPerSite: 50,
+      pinnedSites: [],
+      siteOrder: [],
       showSummary: true,
       showTime: true,
       showHot: true,
@@ -21,7 +23,9 @@ Page({
     // 从全局数据加载设置
     var globalSettings = app.globalData.settings || {};
     var settings = {
-      itemsPerSite: globalSettings.itemsPerSite || 10,
+      itemsPerSite: globalSettings.itemsPerSite || 50,
+      pinnedSites: globalSettings.pinnedSites || [],
+      siteOrder: globalSettings.siteOrder || [],
       showSummary: globalSettings.showSummary !== false,
       showTime: globalSettings.showTime !== false,
       showHot: globalSettings.showHot !== false,
@@ -39,13 +43,15 @@ Page({
     var that = this;
     var globalSettings = app.globalData.settings || {};
     that.setData({
-      'settings.itemsPerSite': globalSettings.itemsPerSite || 10,
+      'settings.itemsPerSite': globalSettings.itemsPerSite || 50,
+      'settings.pinnedSites': globalSettings.pinnedSites || [],
+      'settings.siteOrder': globalSettings.siteOrder || [],
       'settings.showSummary': globalSettings.showSummary !== false,
       'settings.showTime': globalSettings.showTime !== false,
       'settings.showHot': globalSettings.showHot !== false,
       'settings.theme': globalSettings.theme || 'light',
       'settings.refreshInterval': globalSettings.refreshInterval || 5,
-      tempItemsPerSite: globalSettings.itemsPerSite || 10
+      tempItemsPerSite: globalSettings.itemsPerSite || 50
     });
   },
 
@@ -147,7 +153,9 @@ Page({
       success: function(res) {
         if (res.confirm) {
           var defaultSettings = {
-            itemsPerSite: 10,
+            itemsPerSite: 50,
+            pinnedSites: [],
+            siteOrder: [],
             showSummary: true,
             showTime: true,
             showHot: true,
@@ -163,6 +171,45 @@ Page({
           });
         }
       }
+    });
+  },
+
+  // 更新每站显示数量
+  updateItemsPerSite: function(e) {
+    var value = parseInt(e.detail.value);
+    if (value > 0) {
+      this.setData({
+        'settings.itemsPerSite': value
+      });
+      app.globalData.settings.itemsPerSite = value;
+      app.saveSettings();
+    }
+  },
+
+  // 清除缓存
+  clearCache: function() {
+    wx.showModal({
+      title: '确认清除',
+      content: '确定要清除所有缓存数据吗？',
+      success: (res) => {
+        if (res.confirm) {
+          app.globalData.hotItemsBySite = {};
+          app.globalData.lastUpdated = null;
+          wx.showToast({
+            title: '缓存已清除',
+            icon: 'success'
+          });
+        }
+      }
+    });
+  },
+
+  // 关于
+  showAbout: function() {
+    wx.showModal({
+      title: '关于',
+      content: '热点新闻小程序 v1.0.0\n\n聚合多个平台的热点新闻，实时更新。',
+      showCancel: false
     });
   }
 }); 

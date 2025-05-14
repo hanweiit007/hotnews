@@ -4,10 +4,16 @@ App({
     allHotItems: [],
     isLoading: false,
     lastUpdated: null,
-    mcpBaseUrl: 'http://localhost:3001', // MCP 服务的基础 URL
+    mcpBaseUrl: 'http://localhost:3001', // 本地开发环境地址
     settings: {
-      itemsPerSite: 10 // 默认每个站点显示10条
-    }
+      itemsPerSite: 50,
+      pinnedSites: [],
+      siteOrder: []
+    },
+    userInfo: null,
+    StatusBar: null,
+    Custom: null,
+    CustomBar: null
   },
 
   // 网站ID与MCP ID的映射关系
@@ -42,8 +48,44 @@ App({
   },
 
   onLaunch: function() {
+    if (!wx.cloud) {
+      console.error('请使用 2.2.3 或以上的基础库以使用云能力')
+    } else {
+      wx.cloud.init({
+        // env 参数说明：
+        // env 参数决定接下来小程序发起的云开发调用（wx.cloud.xxx）会默认请求到哪个云环境的资源
+        // 此处请填入环境 ID, 环境 ID 可打开云控制台查看
+        // 如不填则使用默认环境（第一个创建的环境）
+        env: 'hotnews-xxxxx', // 请将此处替换为你的云开发环境ID
+        traceUser: true, // 是否将用户访问记录到用户管理中，在控制台中可见
+      })
+    }
+
+    // 获取系统信息
+    wx.getSystemInfo({
+      success: e => {
+        this.globalData.StatusBar = e.statusBarHeight
+        let capsule = wx.getMenuButtonBoundingClientRect()
+        if (capsule) {
+          this.globalData.Custom = capsule
+          this.globalData.CustomBar = capsule.bottom + capsule.top - e.statusBarHeight
+        } else {
+          this.globalData.CustomBar = e.statusBarHeight + 50
+        }
+      }
+    })
+
     // 从本地存储加载设置
-    this.loadSettings();
+    var settings = wx.getStorageSync('settings')
+    if (settings) {
+      // 确保所有必要的设置字段都存在
+      this.globalData.settings = {
+        itemsPerSite: settings.itemsPerSite || 50,
+        pinnedSites: settings.pinnedSites || [],
+        siteOrder: settings.siteOrder || []
+      }
+    }
+
     // 初始化数据
     this.initData();
   },
@@ -61,19 +103,8 @@ App({
   },
 
   // 保存设置
-  saveSettings: function(settings) {
-    try {
-      this.globalData.settings = settings;
-      wx.setStorageSync('settings', JSON.stringify(settings));
-      // 重新加载数据以应用新设置
-      this.refreshData();
-    } catch (error) {
-      console.error('保存设置失败:', error);
-      wx.showToast({
-        title: '保存设置失败',
-        icon: 'none'
-      });
-    }
+  saveSettings: function() {
+    wx.setStorageSync('settings', this.globalData.settings)
   },
 
   initData: function() {
@@ -93,10 +124,16 @@ App({
       })
       .catch(function(error) {
         console.error('初始化数据失败:', error);
+        // 显示错误提示
         wx.showToast({
-          title: '数据加载失败',
-          icon: 'none'
+          title: '数据加载失败，请检查网络连接',
+          icon: 'none',
+          duration: 2000
         });
+        // 3秒后自动重试
+        setTimeout(function() {
+          that.initData();
+        }, 3000);
       })
       .finally(function() {
         that.globalData.isLoading = false;
@@ -168,16 +205,14 @@ App({
   },
 
   // 获取所有热点数据
-  getAllHotItems: function(itemsPerSite) {
-    const that = this;
-    itemsPerSite = itemsPerSite || this.globalData.settings.itemsPerSite;
-    
-    console.log('开始获取热点数据，itemsPerSite:', itemsPerSite);
-    console.log('MCP服务地址:', that.globalData.mcpBaseUrl);
-    
+  getAllHotItems: function(limit) {
+    var that = this
     return new Promise(function(resolve, reject) {
-      const siteIds = Object.values(that.siteMcpIdMap);
-      console.log('请求的站点IDs:', siteIds);
+      console.log('开始获取热点数据，URL:', that.globalData.mcpBaseUrl + '/api/hotnews')
+      
+      // 获取所有站点的 ID
+      const siteIds = Object.values(that.siteMcpIdMap)
+      console.log('请求的站点IDs:', siteIds)
       
       wx.request({
         url: that.globalData.mcpBaseUrl + '/api/hotnews',
@@ -185,164 +220,86 @@ App({
         data: {
           siteIds: siteIds
         },
-        header: {
-          'content-type': 'application/json'
-        },
         success: function(res) {
-          console.log('请求成功，状态码:', res.statusCode);
-          console.log('原始响应数据:', JSON.stringify(res.data, null, 2));
+          console.log('MCP 服务响应:', res)
           
           if (res.statusCode === 200 && res.data) {
-            const sites = [];
-            const hotItemsBySite = {};
-
-            // 检查响应数据的结构
-            if (typeof res.data === 'object') {
-              // 处理每个站点的数据
-              Object.keys(res.data).forEach(function(siteId) {
-                console.log('处理站点数据:', siteId, '数据类型:', typeof res.data[siteId]);
-                
-                // 找到对应的站点信息
-                const siteInfo = Object.entries(that.siteMcpIdMap).find(function([_, id]) {
-                  return id === parseInt(siteId);
-                });
-                
-                if (siteInfo) {
-                  const siteKey = siteInfo[0];
-                  const siteName = that.getSiteName(siteKey);
-                  console.log('找到站点信息:', siteKey, siteName);
-                  
-                  sites.push({
-                    id: siteKey,
-                    name: siteName,
-                    mcpId: parseInt(siteId)
-                  });
-
-                  // 处理热点数据
-                  let itemsArray = [];
-                  const siteData = res.data[siteId];
-                  
-                  if (Array.isArray(siteData)) {
-                    itemsArray = siteData;
-                  } else if (typeof siteData === 'object') {
-                    if (Array.isArray(siteData.items)) {
-                      itemsArray = siteData.items;
-                    } else if (Array.isArray(siteData.data)) {
-                      itemsArray = siteData.data;
-                    } else if (Array.isArray(siteData.list)) {
-                      itemsArray = siteData.list;
-                    } else {
-                      itemsArray = Object.values(siteData).filter(function(item) {
-                        return typeof item === 'object' && item !== null;
-                      });
-                    }
-                  }
-                  
-                  console.log('站点', siteKey, '热点数据:', itemsArray);
-                  console.log('站点热点数量:', itemsArray.length);
-                  
-                  // 只取指定数量的热点
-                  hotItemsBySite[siteKey] = itemsArray.slice(0, itemsPerSite).map(function(item, index) {
-                    const processedItem = {
-                      id: item.id || (siteKey + '-' + (index + 1)),
-                      title: item.title || item.name || item.text || '',
-                      url: item.url || item.link || item.href || '',
-                      rank: item.rank || item.index || (index + 1),
-                      hot: item.hot || item.heat || item.count || 0,
-                      publishTime: item.time || item.date || item.publishTime || new Date().toISOString(),
-                      sourceId: siteKey,
-                      siteName: siteName,
-                      summary: item.excerpt || item.content || item.desc || item.summary || ''
-                    };
-                    
-                    processedItem.rank = parseInt(processedItem.rank) || (index + 1);
-                    processedItem.hot = parseInt(processedItem.hot) || 0;
-                    
-                    return processedItem;
-                  });
-                } else {
-                  console.warn('未找到站点信息:', siteId);
-                }
-              });
-            } else {
-              console.warn('响应数据格式不正确:', typeof res.data);
+            // 确保返回的数据结构正确
+            const result = {
+              sites: [],
+              hotItemsBySite: {},
+              lastUpdated: new Date().toISOString()
             }
 
-            console.log('处理完成，站点数量:', sites.length);
-            console.log('热点数据:', JSON.stringify(hotItemsBySite, null, 2));
+            // 处理每个站点的数据
+            Object.keys(that.siteMcpIdMap).forEach(function(siteId, index) {
+              const siteName = that.getSiteName(siteId)
+              const mcpId = that.siteMcpIdMap[siteId]
+              result.sites.push({
+                id: siteId,
+                name: siteName,
+                mcpId: mcpId
+              })
 
-            that.globalData.sites = sites;
-            that.globalData.hotItemsBySite = hotItemsBySite;
-            that.globalData.lastUpdated = new Date().toLocaleString();
+              // 使用数组索引获取对应站点的数据
+              const siteData = res.data[index]
+              console.log(`站点 ${siteId} (MCP ID: ${mcpId}) 的数据:`, siteData)
+              
+              if (siteData && Array.isArray(siteData.data)) {
+                // 为每个热点项添加排名和必要的字段
+                const itemsWithRank = siteData.data.map((item, index) => {
+                  // 根据不同站点处理数据
+                  let processedItem = {
+                    id: item.id || `item_${index}`,
+                    title: item.title || '',
+                    url: item.url || '',
+                    hot: item.hot || '0',
+                    publishTime: item.time || new Date().toISOString(),
+                    summary: item.summary || '',
+                    rank: index + 1
+                  }
 
-            resolve({
-              sites: sites,
-              hotItemsBySite: hotItemsBySite,
-              lastUpdated: that.globalData.lastUpdated
-            });
+                  // 根据站点类型添加特定字段
+                  switch (siteId) {
+                    case 'zhihu':
+                      processedItem.summary = item.excerpt || ''
+                      break
+                    case 'weibo':
+                      processedItem.summary = item.content || ''
+                      break
+                    case 'baidu':
+                      processedItem.summary = item.desc || ''
+                      break
+                  }
+
+                  return processedItem
+                })
+                result.hotItemsBySite[siteId] = itemsWithRank.slice(0, limit)
+                console.log(`站点 ${siteId} 的热点数据:`, result.hotItemsBySite[siteId])
+              } else {
+                result.hotItemsBySite[siteId] = []
+                console.log(`站点 ${siteId} 没有数据`)
+              }
+            })
+
+            console.log('处理后的数据:', result)
+            resolve(result)
           } else {
-            console.warn('响应数据无效，使用模拟数据');
-            resolve(that.getMockHotItems());
+            console.error('MCP 服务响应错误:', res)
+            reject(new Error('请求失败或数据格式错误'))
           }
         },
         fail: function(error) {
-          console.error('请求失败:', error);
-          console.warn('使用模拟数据');
-          resolve(that.getMockHotItems());
+          console.error('MCP 服务请求失败:', error)
+          reject(error)
         }
-      });
-    });
-  },
-
-  // 获取模拟数据
-  getMockHotItems: function() {
-    const sites = [];
-    const hotItemsBySite = {};
-    const siteIds = Object.keys(this.siteMcpIdMap);
-    
-    // 为每个站点生成模拟数据
-    for (const siteId of siteIds) {
-      const siteName = this.getSiteName(siteId);
-      sites.push({
-        id: siteId,
-        name: siteName,
-        mcpId: this.siteMcpIdMap[siteId]
-      });
-
-      hotItemsBySite[siteId] = Array.from({ length: this.globalData.settings.itemsPerSite }, function(_, i) {
-        return {
-          id: siteId + '-' + (i + 1),
-          title: siteName + '热点 ' + (i + 1),
-          url: 'https://example.com/' + siteId + '/' + (i + 1),
-          rank: i + 1,
-          hot: Math.floor(Math.random() * 1000000),
-          publishTime: new Date().toISOString(),
-          sourceId: siteId,
-          siteName: siteName,
-          summary: '这是' + siteName + '的第' + (i + 1) + '条热点新闻的摘要内容...'
-        };
-      });
-    }
-
-    return {
-      sites: sites,
-      hotItemsBySite: hotItemsBySite,
-      lastUpdated: new Date().toLocaleString()
-    };
+      })
+    })
   },
 
   // 刷新数据
   refreshData: function() {
-    const that = this;
-    return new Promise(function(resolve, reject) {
-      that.getAllHotItems(that.globalData.settings.itemsPerSite)
-        .then(function(result) {
-          resolve(result);
-        })
-        .catch(function(error) {
-          console.error('刷新数据失败:', error);
-          reject(error);
-        });
-    });
+    console.log('刷新数据，itemsPerSite:', this.globalData.settings.itemsPerSite)
+    return this.getAllHotItems(this.globalData.settings.itemsPerSite)
   }
 }); 

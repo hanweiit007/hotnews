@@ -2,13 +2,13 @@
   "pages": [
     "pages/index/index",
     "pages/site/site",
-    "pages/detail/detail",
+    "pages/webview/webview",
     "pages/settings/settings"
   ],
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#fff",
-    "navigationBarTitleText": "热点资讯",
+    "navigationBarTitleText": "热点新闻",
     "navigationBarTextStyle": "black"
   },
   "tabBar": {
@@ -24,12 +24,6 @@
         "selectedIconPath": "assets/icons/home-active.png"
       },
       {
-        "pagePath": "pages/site/site",
-        "text": "站点",
-        "iconPath": "assets/icons/site.png",
-        "selectedIconPath": "assets/icons/site-active.png"
-      },
-      {
         "pagePath": "pages/settings/settings",
         "text": "设置",
         "iconPath": "assets/icons/settings.png",
@@ -39,5 +33,16 @@
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json",
-  "lazyCodeLoading": "requiredComponents"
+  "lazyCodeLoading": "requiredComponents",
+  "webviewDomain": [
+    "*.zhihu.com",
+    "*.weibo.com",
+    "*.baidu.com",
+    "*.toutiao.com",
+    "*.qq.com",
+    "*.163.com",
+    "*.sohu.com",
+    "*.sina.com.cn",
+    "*.36kr.com"
+  ]
 } 

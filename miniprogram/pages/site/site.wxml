@@ -34,8 +34,8 @@
   <!-- 热点列表 -->
   <view class="hot-items" wx:if="{{!isLoading && hotItems.length > 0}}">
     <view class="items-header">
-      <text class="header-title">热点榜单</text>
-      <text class="update-time">更新于 {{formatTime(lastUpdated)}}</text>
+      <text class="header-title">热点列表</text>
+      <text class="header-count">共{{hotItems.length}}条</text>
     </view>
     <view class="items-list">
       <view class="hot-item" 
@@ -54,18 +54,15 @@
         </view>
       </view>
     </view>
-    <!-- 加载更多提示 -->
-    <view class="load-more" wx:if="{{!showAllItems}}">
-      <text>上拉加载更多</text>
-    </view>
-    <view class="load-more" wx:else>
-      <text>没有更多数据了</text>
-    </view>
   </view>
 
-  <!-- 空状态提示 -->
-  <view class="empty-state" wx:if="{{!isLoading && hotItems.length === 0}}">
+  <!-- 无数据提示 -->
+  <view class="no-data" wx:if="{{!isLoading && hotItems.length === 0}}">
     <text>暂无热点数据</text>
-    <view class="refresh-btn" bindtap="refreshData">点击刷新</view>
+  </view>
+
+  <!-- 加载更多提示 -->
+  <view class="load-more" wx:if="{{!isLoading && !showAllItems && hotItems.length > 0}}">
+    <text>上拉加载更多</text>
   </view>
 </view>

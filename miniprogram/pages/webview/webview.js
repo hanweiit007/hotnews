@@ -8,7 +8,7 @@ Page({
     if (options.url) {
       this.setData({
         url: decodeURIComponent(options.url),
-        title: decodeURIComponent(options.title || '')
+        title: decodeURIComponent(options.title || '热点详情')
       });
     }
   },

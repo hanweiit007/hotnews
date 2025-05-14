@@ -1,5 +1,49 @@
 <!--index.wxml-->
 <view class="container">
+  <!-- 导航栏 -->
+  <view class="nav-bar">
+    <scroll-view class="nav-scroll" scroll-x enable-flex scroll-with-animation scroll-left="{{scrollLeft}}">
+      <view class="nav-items">
+        <view class="nav-item {{selectedSite && selectedSite.id === site.id ? 'active' : ''}}"
+              wx:for="{{sites}}" 
+              wx:key="id"
+              wx:for-item="site"
+              data-site="{{site}}"
+              bindtap="handleSiteSelect">
+          <text class="nav-text">{{site.name}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="nav-edit" bindtap="showSiteEdit">
+      <text class="edit-icon">⋮</text>
+    </view>
+  </view>
+
+  <!-- 站点编辑层 -->
+  <view class="site-edit-layer {{showSiteEdit ? 'show' : ''}}" bindtap="hideSiteEdit">
+    <view class="edit-content" catchtap="stopPropagation">
+      <view class="edit-header">
+        <text class="edit-title">编辑站点</text>
+        <text class="edit-tip">拖动排序，点击置顶</text>
+      </view>
+      <view class="edit-grid">
+        <view class="edit-item {{site.pinned ? 'pinned' : ''}}"
+              wx:for="{{sites}}" 
+              wx:key="id"
+              wx:for-item="site"
+              data-site="{{site}}"
+              bindtap="togglePinSite"
+              bindlongpress="startDrag"
+              bindtouchmove="onDragMove"
+              bindtouchend="endDrag">
+          <text class="edit-icon">{{site.icon}}</text>
+          <text class="edit-name">{{site.name}}</text>
+          <text class="pin-icon" wx:if="{{site.pinned}}">📌</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
   <!-- 顶部刷新提示 -->
   <view class="refresh-bar" wx:if="{{lastUpdated}}">
     <text class="refresh-text">最后更新: {{formatTime(lastUpdated)}}</text>

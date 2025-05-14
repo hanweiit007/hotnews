@@ -91,4 +91,20 @@
   <view class="reset-button" bindtap="resetSettings">
     恢复默认设置
   </view>
+
+  <view class="section">
+    <view class="section-title">数据管理</view>
+    <view class="setting-item" bindtap="clearCache">
+      <text>清除缓存</text>
+      <text class="arrow">></text>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">关于</view>
+    <view class="setting-item" bindtap="showAbout">
+      <text>关于我们</text>
+      <text class="arrow">></text>
+    </view>
+  </view>
 </view> 

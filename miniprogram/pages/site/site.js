@@ -36,6 +36,14 @@ Page({
       if (site) {
         that.setData({ site: site });
         that.loadSiteData();
+      } else {
+        wx.showToast({
+          title: '站点不存在',
+          icon: 'none'
+        });
+        setTimeout(function() {
+          wx.navigateBack();
+        }, 1500);
       }
     }
   },
@@ -91,8 +99,12 @@ Page({
   /**
    * 用户点击右上角分享
    */
-  onShareAppMessage() {
-
+  onShareAppMessage: function() {
+    var site = this.data.site;
+    return {
+      title: site.name + '热点榜单',
+      path: '/pages/site/site?siteId=' + site.id
+    };
   },
 
   loadSiteData: function() {
@@ -101,105 +113,69 @@ Page({
     var that = this;
     that.setData({ isLoading: true });
 
-    app.getAllHotItems()
-      .then(function(result) {
-        var siteId = that.data.site.id;
-        var siteItems = result.hotItemsBySite[siteId] || [];
-        
-        // 计算站点统计信息
-        var stats = that.calculateSiteStats(siteItems);
-        
-        // 只显示第一页数据
-        var currentItems = siteItems.slice(0, that.data.itemsPerPage);
-        
-        that.setData({
-          hotItems: currentItems,
-          lastUpdated: result.lastUpdated,
-          siteStats: stats,
-          showAllItems: siteItems.length <= that.data.itemsPerPage,
-          currentPage: 1
-        });
+    // 从全局数据获取热点数据
+    var hotItems = app.globalData.hotItemsBySite[that.data.site.id] || [];
+    console.log('加载站点数据:', that.data.site.id, hotItems);
+
+    var currentPage = that.data.currentPage;
+    var itemsPerPage = that.data.itemsPerPage;
+    var displayItems = hotItems.slice(0, currentPage * itemsPerPage);
+
+    // 计算站点统计信息
+    var totalItems = hotItems.length;
+    var avgHotValue = 0;
+    if (totalItems > 0) {
+      var totalHot = hotItems.reduce(function(sum, item) {
+        return sum + (parseInt(item.hot) || 0);
+      }, 0);
+      avgHotValue = Math.floor(totalHot / totalItems);
+    }
+
+    // 计算更新频率（假设每5分钟更新一次）
+    var updateFrequency = '5分钟';
+
+    that.setData({
+      hotItems: displayItems,
+      showAllItems: displayItems.length >= totalItems,
+      lastUpdated: app.globalData.lastUpdated,
+      isLoading: false,
+      siteStats: {
+        totalItems: totalItems,
+        avgHotValue: avgHotValue,
+        updateFrequency: updateFrequency
+      }
+    }, function() {
+      console.log('站点数据更新完成:', that.data.hotItems);
+    });
+
+    wx.stopPullDownRefresh();
+  },
+
+  refreshData: function() {
+    var that = this;
+    that.setData({ isLoading: true });
+
+    // 重新加载全局数据
+    app.initData()
+      .then(function() {
+        that.loadSiteData();
       })
       .catch(function(error) {
-        console.error('加载站点数据失败:', error);
+        console.error('刷新数据失败:', error);
         wx.showToast({
-          title: '加载失败',
+          title: '刷新失败',
           icon: 'none'
         });
-      })
-      .finally(function() {
         that.setData({ isLoading: false });
         wx.stopPullDownRefresh();
       });
   },
 
-  refreshData: function() {
-    this.loadSiteData();
-  },
-
   loadMoreItems: function() {
     var that = this;
-    that.setData({ isLoading: true });
-
-    app.getAllHotItems()
-      .then(function(result) {
-        var siteId = that.data.site.id;
-        var allItems = result.hotItemsBySite[siteId] || [];
-        var nextPage = that.data.currentPage + 1;
-        var startIndex = (nextPage - 1) * that.data.itemsPerPage;
-        var endIndex = startIndex + that.data.itemsPerPage;
-        var newItems = allItems.slice(startIndex, endIndex);
-
-        if (newItems.length > 0) {
-          that.setData({
-            hotItems: that.data.hotItems.concat(newItems),
-            currentPage: nextPage,
-            showAllItems: endIndex >= allItems.length
-          });
-        } else {
-          that.setData({ showAllItems: true });
-        }
-      })
-      .catch(function(error) {
-        console.error('加载更多数据失败:', error);
-        wx.showToast({
-          title: '加载失败',
-          icon: 'none'
-        });
-      })
-      .finally(function() {
-        that.setData({ isLoading: false });
-      });
-  },
-
-  calculateSiteStats: function(items) {
-    if (!items || items.length === 0) {
-      return {
-        totalItems: 0,
-        avgHotValue: 0,
-        updateFrequency: 0
-      };
-    }
-
-    // 计算平均热度
-    var totalHot = items.reduce(function(sum, item) {
-      return sum + (parseInt(item.hot) || 0);
-    }, 0);
-    var avgHot = Math.round(totalHot / items.length);
-
-    // 计算更新频率（基于最近更新时间）
-    var now = new Date();
-    var latestUpdate = new Date(items[0].publishTime);
-    var hoursDiff = (now - latestUpdate) / (1000 * 60 * 60);
-    var updateFreq = hoursDiff < 1 ? '1小时内' : 
-                    hoursDiff < 24 ? Math.round(hoursDiff) + '小时' :
-                    Math.round(hoursDiff / 24) + '天';
-
-    return {
-      totalItems: items.length,
-      avgHotValue: avgHot,
-      updateFrequency: updateFreq
-    };
+    var currentPage = that.data.currentPage + 1;
+    that.setData({ currentPage: currentPage });
+    that.loadSiteData();
   },
 
   handleItemClick: function(e) {
@@ -229,5 +205,14 @@ Page({
     return d.getFullYear() + '-' + 
            String(d.getMonth() + 1).padStart(2, '0') + '-' + 
            String(d.getDate()).padStart(2, '0');
+  },
+
+  // 分享站点
+  shareSite: function() {
+    var site = this.data.site;
+    wx.showShareMenu({
+      withShareTicket: true,
+      menus: ['shareAppMessage', 'shareTimeline']
+    });
   }
 })
