@@ -42,13 +42,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [settings.updateInterval]);
 
   const loadInitialData = async () => {
-    console.log('Starting to load initial data...');
     setIsLoading(true);
     try {
       // 获取站点数据
-      console.log('Fetching sites...');
       const sitesData = await apiService.getSites();
-      console.log('Sites fetched:', sitesData);
       setSites(sitesData);
 
       // 获取热点数据，添加重试逻辑
@@ -58,13 +55,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       while (retryCount < maxRetries) {
         try {
-          console.log(`Attempt ${retryCount + 1} to fetch hot items...`);
           hotItemsData = await apiService.getAllHotItems();
-          console.log('Hot items fetched successfully:', hotItemsData);
           
           // 验证数据
           if (Array.isArray(hotItemsData) && hotItemsData.length > 0) {
-            console.log(`Setting ${hotItemsData.length} hot items to state`);
             setAllHotItems(hotItemsData);
             setLastUpdated(new Date());
             break;
@@ -75,7 +69,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           console.error(`Attempt ${retryCount + 1} failed:`, error);
           retryCount++;
           if (retryCount < maxRetries) {
-            console.log(`Waiting ${retryCount * 1000}ms before retry...`);
             await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
           } else {
             console.error('All retry attempts failed');
@@ -91,42 +84,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const refreshData = async () => {
-    console.log('Refreshing data...');
-    setIsLoading(true);
     try {
       const [sitesData, hotItemsData] = await Promise.all([
         apiService.getSites(),
         apiService.getAllHotItems()
       ]);
       
-      console.log('Refresh results:', {
-        sitesCount: sitesData.length,
-        hotItemsCount: hotItemsData.length
-      });
-
-      // 验证数据
-      if (Array.isArray(hotItemsData) && hotItemsData.length > 0) {
-        setSites(sitesData);
-        setAllHotItems(hotItemsData);
-        setLastUpdated(new Date());
-      } else {
-        console.error('Invalid or empty hot items data received');
-      }
+      setSites(sitesData);
+      setAllHotItems(hotItemsData);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('Error refreshing data:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const getSiteHotItems = async (siteId: SiteId, limit: number = 10): Promise<HotItem[]> => {
-    console.log(`Fetching hot items for site ${siteId}...`);
     try {
       const items = await apiService.getSiteHotItems(siteId, limit);
-      console.log(`Fetched ${items.length} items for site ${siteId}`);
       return items;
     } catch (error) {
-      console.error(`Error fetching hot items for site ${siteId}:`, error);
+      console.error(`Error getting hot items for site ${siteId}:`, error);
       return [];
     }
   };
@@ -135,7 +112,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       return await apiService.getHotItemDetails(itemId);
     } catch (error) {
-      console.error(`Failed to get details for item ${itemId}:`, error);
+      console.error(`Error getting details for item ${itemId}:`, error);
       return null;
     }
   };
@@ -144,7 +121,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setSettings(prev => ({ ...prev, ...newSettings }));
   };
 
-  const value = {
+  const value: AppContextType = {
     sites,
     allHotItems,
     isLoading,
@@ -156,7 +133,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     getHotItemDetails,
   };
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={value}>
+      {children}
+    </AppContext.Provider>
+  );
 };
 
 export const useApp = (): AppContextType => {

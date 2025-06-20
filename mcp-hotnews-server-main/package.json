@@ -36,15 +36,13 @@
     "test:urls": "node --loader ts-node/esm test/url-test.ts",
     "watch": "tsc --watch",
     "docker": "docker build -t wopal/mcp-server-hotnews:latest -f Dockerfile .",
-    "start": "node build/http-server.js",
-    "dev": "ts-node src/http-server.ts",
-    "start:mcp": "node build/index.js",
-    "dev:mcp": "ts-node src/index.ts"
+    "start:http": "npm run build && node build/http-server.js"
   },
   "devDependencies": {
     "@types/node": "^20.17.47",
+    "shx": "^0.3.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   },
   "type": "module"
-} 
+}

@@ -80,7 +80,12 @@ const ItemDetailPage: React.FC = () => {
         title: item.title,
         text: item.summary || item.title,
         url: window.location.href,
-      }).catch(error => console.log('分享失败:', error));
+      }).catch((error: any) => {
+        console.error('分享失败:', error);
+      });
+    } else {
+      // 可以弹窗提示"当前浏览器不支持分享"
+      alert('当前浏览器不支持原生分享功能');
     }
   };
   

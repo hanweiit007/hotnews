@@ -40,12 +40,6 @@ const HomePage: React.FC = () => {
 
   useEffect(() => {
     // Initial data load handled by AppContext
-    console.log('HomePage mounted, current data:', {
-      sitesCount: sites.length,
-      hotItemsCount: allHotItems.length,
-      isLoading,
-      lastUpdated
-    });
   }, [sites, allHotItems, isLoading, lastUpdated]);
 
   // 按源站点分组项目

@@ -7,15 +7,35 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
-import { getHotItems } from "./hot-news";
-import { SITE_CONFIGS } from "./config";
+import axios from "axios";
+
+import {
+  BASE_API_URL,
+  HOT_NEWS_SOURCES,
+  generateSourcesDescription,
+  getMaxSourceId,
+} from "./config.js";
 
 // Define interfaces for type safety
+interface HotNewsSource {
+  name: string;
+  description: string;
+}
+
 interface HotNewsItem {
   index: number;
   title: string;
   url: string;
   hot?: string | number;
+}
+
+interface HotNewsResponse {
+  success: boolean;
+  message?: string;
+  name: string;
+  subtitle: string;
+  update_time: string;
+  data: HotNewsItem[];
 }
 
 class HotNewsServer {
@@ -49,10 +69,11 @@ class HotNewsServer {
             properties: {
               sources: {
                 type: "array",
-                description: "List of site IDs to fetch hot news from",
+                description: generateSourcesDescription(),
                 items: {
-                  type: "string",
-                  enum: Object.keys(SITE_CONFIGS),
+                  type: "number",
+                  minimum: 1,
+                  maximum: getMaxSourceId(),
                 },
               },
             },
@@ -71,19 +92,30 @@ class HotNewsServer {
       }
 
       try {
-        const sources = request.params.arguments?.sources as string[];
+        const sources = request.params.arguments?.sources as number[];
         if (!Array.isArray(sources) || sources.length === 0) {
           throw new Error("Please provide valid source IDs");
         }
 
         // Fetch multiple hot lists
         const results = await Promise.all(
-          sources.map(async (siteId) => {
+          sources.map(async (sourceId) => {
+            const source = HOT_NEWS_SOURCES[sourceId];
+            if (!source) {
+              return `Source ID ${sourceId} does not exist`;
+            }
+
             try {
-              const items = await getHotItems(siteId, 50);
-              const siteConfig = SITE_CONFIGS[siteId];
-              
-              const newsList = items.map(
+              const response = await axios.get<HotNewsResponse>(
+                `${BASE_API_URL}/${source.name}`,
+              );
+              const news = response.data;
+
+              if (!news.success) {
+                return `Failed to fetch ${source.description}: ${news.message}`;
+              }
+
+              const newsList = news.data.map(
                 (item: HotNewsItem) =>
                   `${item.index}. [${item.title}](${item.url}) ${
                     item.hot ? `<small>Heat: ${item.hot}</small>` : ""
@@ -91,13 +123,15 @@ class HotNewsServer {
               );
 
               return `
-### ${siteConfig.name}
-> Last updated: ${new Date().toISOString()}
+### ${news.name}:${news.subtitle}
+> Last updated: ${news.update_time}
 ${newsList.join("\n")}
 `;
             } catch (error) {
-              return `Failed to fetch ${siteConfig.name}: ${
-                error instanceof Error ? error.message : "Unknown error"
+              return `Failed to fetch ${source.description}: ${
+                axios.isAxiosError(error)
+                  ? (error.response?.data.message ?? error.message)
+                  : "Unknown error"
               }`;
             }
           }),
@@ -127,15 +161,53 @@ ${newsList.join("\n")}
     });
   }
 
-  async start() {
+  async getHotNews(sources: number[]) {
+    const results = await Promise.all(
+      sources.map(async (sourceId) => {
+        const source = HOT_NEWS_SOURCES[sourceId];
+        if (!source) {
+          return `Source ID ${sourceId} does not exist`;
+        }
+
+        try {
+          const response = await axios.get<HotNewsResponse>(
+            `${BASE_API_URL}/${source.name}`,
+          );
+          const news = response.data;
+
+          if (!news.success) {
+            return `Failed to fetch ${source.description}: ${news.message}`;
+          }
+
+          return {
+            name: news.name,
+            subtitle: news.subtitle,
+            update_time: news.update_time,
+            data: news.data
+          };
+        } catch (error) {
+          return `Failed to fetch ${source.description}: ${
+            axios.isAxiosError(error)
+              ? (error.response?.data.message ?? error.message)
+              : "Unknown error"
+          }`;
+        }
+      }),
+    );
+
+    return results;
+  }
+
+  async run() {
     const transport = new StdioServerTransport();
-    await this.server.start(transport);
+    await this.server.connect(transport);
+    console.error("Hot news MCP server running on stdio");
   }
 }
 
-// Start the server
-const server = new HotNewsServer();
-server.start().catch((error) => {
-  console.error("Failed to start server:", error);
-  process.exit(1);
-}); 
+export { HotNewsServer };
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const server = new HotNewsServer();
+  server.run().catch(console.error);
+}

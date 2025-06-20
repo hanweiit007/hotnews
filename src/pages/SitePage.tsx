@@ -83,15 +83,12 @@ const SitePage: React.FC = () => {
         title: `${site.name.zh} 热点排行`,
         text: `查看 ${site.name.zh} 最新热点排行`,
         url: window.location.href,
-      }).catch(error => console.log('分享失败:', error));
-    } else {
-      toast({
-        title: '分享功能不可用',
-        description: '您的浏览器不支持原生分享功能',
-        status: 'info',
-        duration: 3000,
-        isClosable: true,
+      }).catch((error: any) => {
+        console.error('分享失败:', error);
       });
+    } else {
+      // 可以弹窗提示"当前浏览器不支持分享"
+      alert('当前浏览器不支持原生分享功能');
     }
   };
   
