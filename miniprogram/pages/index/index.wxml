@@ -71,11 +71,11 @@
               <view class="site-header" bindtap="toggleSiteCollapse" data-site-id="{{site.id}}" style="display: flex; align-items: center; justify-content: space-between;">
                 <view style="display: flex; align-items: center;">
                   <text class="site-title">{{site.name}}</text>
-                  <text class="collapse-icon {{collapsedSites[site.id] ? 'collapsed' : ''}}">▼</text>
+                  <text class="collapse-icon abcde {{collapsedSites[site.id] ? 'collapsed' : ''}} {{collapsedSites[site.id]}}">▼</text>
                 </view>
                 <!-- 只在第一个 site-section 渲染全部展开/折叠按钮，右侧显示 -->
                 <view wx:if="{{index === 1}}" class="collapse-controls-inline" style="margin-left: auto;">
-                  <view class="collapse-btn" bindtap="onAllSitesBtnTap">
+                  <view class="collapse-btn" catchtap="onAllSitesBtnTap">
                     <text class="collapse-icon {{isAllCollapsed ? 'collapsed' : ''}}">▼</text>
                     <text>{{isAllCollapsed ? '全部展开' : '全部折叠'}}</text>
                   </view>

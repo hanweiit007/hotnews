@@ -236,7 +236,8 @@ Page({
   // 切换站点折叠状态
   toggleSiteCollapse: function(e) {
     const siteId = e.currentTarget.dataset.siteId;
-    const collapsedSites = this.data.collapsedSites;
+    // 一定要新建对象，避免引用问题
+    const collapsedSites = { ...this.data.collapsedSites };
     collapsedSites[siteId] = !collapsedSites[siteId];
     this.setData({ collapsedSites });
   },
