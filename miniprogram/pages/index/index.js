@@ -4,14 +4,12 @@ var app = getApp()
 Page({
   data: {
     sites: [],
-    hotItemsBySite: {},
     isLoading: false,
     lastUpdated: null,
     selectedSite: null,
     groupedHotItems: {},
     recommendedItemsPerSite: 3,
     siteItemsPerSite: 10,
-    scrollLeft: 0,
     collapsedSites: {}, // 存储每个站点的折叠状态
     isAllCollapsed: false // 存储全部折叠状态
   },
@@ -67,13 +65,15 @@ Page({
           }
         })
 
-        // 添加推荐选项
-        sites.unshift({
-          id: 'recommended',
-          name: '推荐',
-          icon: '🔥',
-          pinned: true
-        })
+        // 推荐始终固定在第一个
+        if (!sites.length || sites[0].id !== 'recommended') {
+          sites.unshift({
+            id: 'recommended',
+            name: '推荐',
+            icon: '🔥',
+            pinned: true
+          })
+        }
 
         // 根据置顶状态和配置顺序排序
         sites.sort(function(a, b) {
@@ -107,32 +107,40 @@ Page({
                 rank: index + 1
               }
             })
-          })
+          });
+          // 推荐始终固定在第一个
+          if (groupedHotItems) {
+            groupedHotItems.recommended = [];
+          }
         }
+
+        // sites数组已保证推荐在第一个
+        const recommendedSite = sites[0];
+        const otherSites = sites.slice(1);
 
         that.setData({
           sites: sites,
+          recommendedSite: recommendedSite,
+          otherSites: otherSites,
           hotItemsBySite: result.hotItemsBySite || {},
           lastUpdated: result.lastUpdated || new Date().toISOString(),
           groupedHotItems: groupedHotItems,
           selectedSite: selectedSite,
           recommendedItemsPerSite: settings.recommendedItemsPerSite || 3,
           siteItemsPerSite: settings.siteItemsPerSite || 10
-        })
+        });
 
         // 计算滚动位置
-        that.updateScrollPosition()
-      })
-      .catch(function(error) {
-        console.error('加载数据失败:', error)
+        that.updateScrollPosition();
+      }).catch(function(error) {
+        console.error('加载数据失败:', error);
         wx.showToast({
           title: '加载数据失败',
           icon: 'none',
           duration: 2000
-        })
-      })
-      .finally(function() {
-        that.setData({ isLoading: false })
+        });
+      }).finally(function() {
+        that.setData({ isLoading: false });
       })
   },
 
@@ -196,38 +204,6 @@ Page({
     })
   },
 
-  // 阻止事件冒泡
-  stopPropagation: function() {},
-
-  // 切换站点置顶状态
-  togglePinSite: function(e) {
-    var site = e.currentTarget.dataset.site
-    var sites = this.data.sites
-    var index = sites.findIndex(function(s) { return s.id === site.id })
-    if (index !== -1) {
-      sites[index].pinned = !sites[index].pinned
-      this.setData({ sites: sites })
-      
-      // 更新全局设置
-      var pinnedSites = app.globalData.settings.pinnedSites || []
-      if (sites[index].pinned) {
-        if (pinnedSites.indexOf(site.id) === -1) {
-          pinnedSites.push(site.id)
-        }
-      } else {
-        var pinIndex = pinnedSites.indexOf(site.id)
-        if (pinIndex !== -1) {
-          pinnedSites.splice(pinIndex, 1)
-        }
-      }
-      app.globalData.settings.pinnedSites = pinnedSites
-      app.saveSettings()
-      
-      // 重新排序
-      this.loadData()
-    }
-  },
-
   handleItemClick: function(e) {
     var item = e.currentTarget.dataset.item;
     // 直接跳转到web-view页面
@@ -269,8 +245,9 @@ Page({
   toggleAllSites: function() {
     const isCollapse = !this.data.isAllCollapsed;
     const collapsedSites = {};
+    // 只折叠9个实际站点，不包含推荐
     this.data.sites.forEach(site => {
-      if (site.id !== 'recommended') {
+      if (site.id !== 'recommended' && this.data.groupedHotItems[site.id]) {
         collapsedSites[site.id] = isCollapse;
       }
     });
@@ -285,7 +262,9 @@ Page({
   },
 
   onAllSitesBtnTap: function(e) {
-    e.stopPropagation();
+    if (e && typeof e.stopPropagation === 'function') {
+      e.stopPropagation();
+    }
     this.toggleAllSites();
   },
 }) 
