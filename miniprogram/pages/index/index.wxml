@@ -2,6 +2,9 @@
 <view class="container">
   <!-- 导航栏 -->
   <view class="nav-bar">
+    <view class="nav-sort-btn" bindtap="openNavSort">
+      <text class="sort-icon">≡</text>
+    </view>
     <scroll-view class="nav-scroll" scroll-x enable-flex scroll-with-animation scroll-left="{{scrollLeft}}">
       <view class="nav-items">
         <view class="nav-item {{selectedSite && selectedSite.id === site.id ? 'active' : ''}}"
@@ -14,33 +17,8 @@
         </view>
       </view>
     </scroll-view>
-    <view class="nav-edit" bindtap="showSiteEdit">
+    <view class="nav-edit" bindtap="openNavSort">
       <text class="edit-icon">⋮</text>
-    </view>
-  </view>
-
-  <!-- 站点编辑层 -->
-  <view class="site-edit-layer {{showSiteEdit ? 'show' : ''}}" bindtap="hideSiteEdit">
-    <view class="edit-content" catchtap="stopPropagation">
-      <view class="edit-header">
-        <text class="edit-title">编辑站点</text>
-        <text class="edit-tip">拖动排序，点击置顶</text>
-      </view>
-      <view class="edit-grid">
-        <view class="edit-item {{site.pinned ? 'pinned' : ''}}"
-              wx:for="{{sites}}" 
-              wx:key="id"
-              wx:for-item="site"
-              data-site="{{site}}"
-              bindtap="togglePinSite"
-              bindlongpress="startDrag"
-              bindtouchmove="onDragMove"
-              bindtouchend="endDrag">
-          <text class="edit-icon">{{site.icon}}</text>
-          <text class="edit-name">{{site.name}}</text>
-          <text class="pin-icon" wx:if="{{site.pinned}}">📌</text>
-        </view>
-      </view>
     </view>
   </view>
 
@@ -79,20 +57,21 @@
     <block wx:if="{{selectedSite}}">
       <block wx:if="{{selectedSite.id === 'recommended'}}">
         <view class="recommended-list">
-          <!-- 折叠控制按钮 -->
-          <view class="collapse-controls">
-            <view class="collapse-btn" bindtap="toggleAllSites">
-              <text class="collapse-icon {{isAllCollapsed ? 'collapsed' : ''}}">▼</text>
-              <text>{{isAllCollapsed ? '全部展开' : '全部折叠'}}</text>
-            </view>
-          </view>
-
           <block wx:for="{{sites}}" wx:key="id" wx:for-item="site">
-            <block wx:if="{{site.id !== 'recommended' && groupedHotItems[site.id]}}">
+            <block wx:if="site.id !== 'recommended' && groupedHotItems[site.id]">
               <view class="site-section">
-                <view class="site-header" bindtap="toggleSiteCollapse" data-site-id="{{site.id}}">
-                  <text class="site-title">{{site.name}}热搜</text>
-                  <text class="collapse-icon {{collapsedSites[site.id] ? 'collapsed' : ''}}">▼</text>
+                <view class="site-header" bindtap="toggleSiteCollapse" data-site-id="{{site.id}}" style="display: flex; align-items: center; justify-content: space-between;">
+                  <view style="display: flex; align-items: center;">
+                    <text class="site-title">{{site.name}}</text>
+                    <text class="collapse-icon {{collapsedSites[site.id] ? 'collapsed' : ''}}">▼</text>
+                  </view>
+                  <!-- 只在第一个 site-section 渲染全部展开/折叠按钮，右侧显示 -->
+                  <view wx:if="{{index === 1}}" class="collapse-controls-inline" style="margin-left: auto;">
+                    <view class="collapse-btn" bindtap="onAllSitesBtnTap">
+                      <text class="collapse-icon {{isAllCollapsed ? 'collapsed' : ''}}">▼</text>
+                      <text>{{isAllCollapsed ? '全部展开' : '全部折叠'}}</text>
+                    </view>
+                  </view>
                 </view>
                 <view class="items-list {{collapsedSites[site.id] ? 'collapsed' : ''}}">
                   <view class="hot-item" 
@@ -114,28 +93,6 @@
               </view>
             </block>
           </block>
-        </view>
-      </block>
-      <block wx:else>
-        <view class="site-header">
-          <text class="site-title">{{selectedSite.name}}热搜</text>
-        </view>
-        <view class="items-list">
-          <view class="hot-item" 
-                wx:for="{{groupedHotItems[selectedSite.id]}}" 
-                wx:key="id"
-                wx:if="{{index < siteItemsPerSite}}"
-                data-item="{{item}}"
-                bindtap="handleItemClick">
-            <view class="item-rank {{item.rank <= 3 ? 'top-' + item.rank : ''}}">{{item.rank}}</view>
-            <view class="item-content">
-              <view class="item-title">{{item.title}}</view>
-              <view class="item-info">
-                <text class="item-hot" wx:if="{{item.hot}}">{{item.hot}}</text>
-                <text class="item-time">{{formatTime(item.publishTime)}}</text>
-              </view>
-            </view>
-          </view>
         </view>
       </block>
     </block>

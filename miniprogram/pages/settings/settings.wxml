@@ -123,8 +123,8 @@
     恢复默认设置
   </view>
 
+  <!-- 数据管理和关于我们优化，无需title，更简洁 -->
   <view class="section">
-    <view class="section-title">数据管理</view>
     <view class="setting-item" bindtap="clearCache">
       <text>清除缓存</text>
       <text class="arrow">></text>
@@ -132,7 +132,6 @@
   </view>
 
   <view class="section">
-    <view class="section-title">关于</view>
     <view class="setting-item" bindtap="showAbout">
       <text>关于我们</text>
       <text class="arrow">></text>

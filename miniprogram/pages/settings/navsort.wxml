@@ -1,0 +1,27 @@
+<view class="navsort-container{{isEdit ? ' editing' : ''}}">
+  <view class="navsort-header-row">
+    <text class="navsort-section-title">我的站点</text>
+    <text class="navsort-simple-btn" bindtap="toggleEdit">{{isEdit ? '完成' : '排序'}}</text>
+  </view>
+  <view class="navsort-section">
+    <view class="navsort-list">
+      <block wx:for="{{mySites}}" wx:key="id" wx:for-item="item">
+        <view class="navsort-item{{isEdit ? ' shake' : ''}}">
+          <text>{{item.name}}</text>
+          <text wx:if="{{isEdit}}" class="navsort-remove" data-id="{{item.id}}" bindtap="removeFromMySites">×</text>
+        </view>
+      </block>
+    </view>
+  </view>
+  <view class="navsort-section">
+    <text class="navsort-section-title">全部站点</text>
+    <view class="navsort-list">
+      <block wx:for="{{allSites}}" wx:key="id" wx:for-item="item">
+        <view class="navsort-item">
+          <text>{{item.name}}</text>
+          <text wx:if="{{isEdit}}" class="navsort-add" data-id="{{item.id}}" bindtap="addToMySites">+</text>
+        </view>
+      </block>
+    </view>
+  </view>
+</view>

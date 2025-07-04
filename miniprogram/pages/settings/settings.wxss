@@ -276,4 +276,26 @@
   background: #3498db;
   color: #fff;
   border-color: #3498db;
+}
+
+.section {
+  margin: 32rpx 0;
+  padding: 32rpx;
+  background: #fff;
+  border-radius: 16rpx;
+}
+
+.section .setting-item {
+  padding: 0;
+  border-bottom: none;
+  font-size: 30rpx;
+  color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section .arrow {
+  color: #bbb;
+  font-size: 28rpx;
 } 

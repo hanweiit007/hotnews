@@ -12,9 +12,6 @@ Page({
     recommendedItemsPerSite: 3,
     siteItemsPerSite: 10,
     scrollLeft: 0,
-    showSiteEdit: false,
-    dragItem: null,
-    dragStartY: 0,
     collapsedSites: {}, // 存储每个站点的折叠状态
     isAllCollapsed: false // 存储全部折叠状态
   },
@@ -199,16 +196,6 @@ Page({
     })
   },
 
-  // 显示站点编辑层
-  showSiteEdit: function() {
-    this.setData({ showSiteEdit: true })
-  },
-
-  // 隐藏站点编辑层
-  hideSiteEdit: function() {
-    this.setData({ showSiteEdit: false })
-  },
-
   // 阻止事件冒泡
   stopPropagation: function() {},
 
@@ -239,60 +226,6 @@ Page({
       // 重新排序
       this.loadData()
     }
-  },
-
-  // 开始拖动
-  startDrag: function(e) {
-    var site = e.currentTarget.dataset.site
-    this.setData({
-      dragItem: site,
-      dragStartY: e.touches[0].clientY
-    })
-  },
-
-  // 拖动中
-  onDragMove: function(e) {
-    if (!this.data.dragItem) return
-    
-    var that = this
-    var currentY = e.touches[0].clientY
-    var deltaY = currentY - this.data.dragStartY
-    
-    // 计算目标位置
-    var query = wx.createSelectorQuery()
-    query.selectAll('.edit-item').boundingClientRect()
-    query.exec(function(res) {
-      if (res[0]) {
-        var items = res[0]
-        var dragIndex = items.findIndex(function(item) {
-          return item.dataset.siteId === that.data.dragItem.id
-        })
-        if (dragIndex !== -1) {
-          var itemHeight = items[0].height
-          var targetIndex = Math.round(deltaY / itemHeight) + dragIndex
-          if (targetIndex >= 0 && targetIndex < items.length) {
-            // 更新站点顺序
-            var sites = that.data.sites
-            var site = sites.splice(dragIndex, 1)[0]
-            sites.splice(targetIndex, 0, site)
-            that.setData({ sites: sites })
-            
-            // 更新全局设置
-            var siteOrder = sites.map(function(s) { return s.id })
-            app.globalData.settings.siteOrder = siteOrder
-            app.saveSettings()
-          }
-        }
-      }
-    })
-  },
-
-  // 结束拖动
-  endDrag: function() {
-    this.setData({
-      dragItem: null,
-      dragStartY: 0
-    })
   },
 
   handleItemClick: function(e) {
@@ -345,5 +278,14 @@ Page({
       collapsedSites,
       isAllCollapsed: isCollapse
     });
+  },
+
+  openNavSort: function() {
+    wx.navigateTo({ url: '/pages/settings/navsort' });
+  },
+
+  onAllSitesBtnTap: function(e) {
+    e.stopPropagation();
+    this.toggleAllSites();
   },
 }) 
