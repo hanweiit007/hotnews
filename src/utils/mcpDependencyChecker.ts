@@ -9,8 +9,6 @@ export const checkMcpService = (): boolean => {
   
   if (!mcpExists || !mcpHasGetHotNews) {
     console.warn('MCP服务不可用，请确保本地MCP服务正在运行');
-  } else {
-    console.log('MCP服务可用');
   }
   
   return mcpExists && mcpHasGetHotNews;

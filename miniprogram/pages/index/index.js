@@ -4,16 +4,14 @@ var app = getApp()
 Page({
   data: {
     sites: [],
-    hotItemsBySite: {},
     isLoading: false,
     lastUpdated: null,
     selectedSite: null,
     groupedHotItems: {},
-    itemsPerSite: null,
-    scrollLeft: 0,
-    showSiteEdit: false,
-    dragItem: null,
-    dragStartY: 0
+    recommendedItemsPerSite: 3,
+    siteItemsPerSite: 10,
+    collapsedSites: {}, // 存储每个站点的折叠状态
+    isAllCollapsed: false // 存储全部折叠状态
   },
 
   onLoad: function() {
@@ -22,9 +20,16 @@ Page({
 
   onShow: function() {
     // 每次显示页面时检查设置是否改变
-    var currentItemsPerSite = app.globalData.settings.itemsPerSite
-    if (this.data.itemsPerSite !== currentItemsPerSite) {
-      this.setData({ itemsPerSite: currentItemsPerSite })
+    var settings = app.globalData.settings || {}
+    var currentRecommendedItems = settings.recommendedItemsPerSite || 3
+    var currentSiteItems = settings.siteItemsPerSite || 10
+    
+    if (this.data.recommendedItemsPerSite !== currentRecommendedItems || 
+        this.data.siteItemsPerSite !== currentSiteItems) {
+      this.setData({ 
+        recommendedItemsPerSite: currentRecommendedItems,
+        siteItemsPerSite: currentSiteItems
+      })
       this.loadData()
     }
   },
@@ -39,8 +44,9 @@ Page({
     this.setData({ isLoading: true })
     var that = this
     
-    // 确保 itemsPerSite 有默认值
-    var itemsPerSite = app.globalData.settings.itemsPerSite || 50
+    // 获取当前设置
+    var settings = app.globalData.settings || {}
+    var itemsPerSite = settings.siteItemsPerSite || 10
     
     app.getAllHotItems(itemsPerSite)
       .then(function(result) {
@@ -55,14 +61,24 @@ Page({
             name: site.name,
             mcpId: site.mcpId,
             icon: that.getSiteIcon(site.id),
-            pinned: (app.globalData.settings.pinnedSites || []).indexOf(site.id) !== -1
+            pinned: (settings.pinnedSites || []).indexOf(site.id) !== -1
           }
         })
+
+        // 推荐始终固定在第一个
+        if (!sites.length || sites[0].id !== 'recommended') {
+          sites.unshift({
+            id: 'recommended',
+            name: '推荐',
+            icon: '🔥',
+            pinned: true
+          })
+        }
 
         // 根据置顶状态和配置顺序排序
         sites.sort(function(a, b) {
           if (a.pinned !== b.pinned) return b.pinned - a.pinned
-          var siteOrder = app.globalData.settings.siteOrder || []
+          var siteOrder = settings.siteOrder || []
           var orderA = siteOrder.indexOf(a.id)
           var orderB = siteOrder.indexOf(b.id)
           if (orderA === -1) orderA = 999
@@ -70,10 +86,10 @@ Page({
           return orderA - orderB
         })
 
-        // 如果没有选中的站点，默认选中第一个站点
+        // 如果没有选中的站点，默认选中推荐
         var selectedSite = that.data.selectedSite
-        if (!selectedSite && sites.length > 0) {
-          selectedSite = sites[0]
+        if (!selectedSite) {
+          selectedSite = sites[0] // 推荐选项
         }
 
         // 更新全局数据
@@ -81,28 +97,50 @@ Page({
         app.globalData.hotItemsBySite = result.hotItemsBySite
         app.globalData.lastUpdated = result.lastUpdated
 
+        // 确保热点数据正确格式化
+        var groupedHotItems = {}
+        if (result.hotItemsBySite) {
+          Object.keys(result.hotItemsBySite).forEach(function(siteId) {
+            groupedHotItems[siteId] = result.hotItemsBySite[siteId].map(function(item, index) {
+              return {
+                ...item,
+                rank: index + 1
+              }
+            })
+          });
+          // 推荐始终固定在第一个
+          if (groupedHotItems) {
+            groupedHotItems.recommended = [];
+          }
+        }
+
+        // sites数组已保证推荐在第一个
+        const recommendedSite = sites[0];
+        const otherSites = sites.slice(1);
+
         that.setData({
           sites: sites,
+          recommendedSite: recommendedSite,
+          otherSites: otherSites,
           hotItemsBySite: result.hotItemsBySite || {},
           lastUpdated: result.lastUpdated || new Date().toISOString(),
-          itemsPerSite: itemsPerSite,
-          groupedHotItems: result.hotItemsBySite || {},
-          selectedSite: selectedSite
-        })
+          groupedHotItems: groupedHotItems,
+          selectedSite: selectedSite,
+          recommendedItemsPerSite: settings.recommendedItemsPerSite || 3,
+          siteItemsPerSite: settings.siteItemsPerSite || 10
+        });
 
         // 计算滚动位置
-        that.updateScrollPosition()
-      })
-      .catch(function(error) {
-        console.error('加载数据失败:', error)
+        that.updateScrollPosition();
+      }).catch(function(error) {
+        console.error('加载数据失败:', error);
         wx.showToast({
           title: '加载数据失败',
           icon: 'none',
           duration: 2000
-        })
-      })
-      .finally(function() {
-        that.setData({ isLoading: false })
+        });
+      }).finally(function() {
+        that.setData({ isLoading: false });
       })
   },
 
@@ -145,9 +183,8 @@ Page({
 
   // 处理站点选择
   handleSiteSelect: function(e) {
-    var site = e.currentTarget.dataset.site
-    this.setData({ selectedSite: site })
-    this.updateScrollPosition()
+    var site = e.currentTarget.dataset.site;
+    this.setData({ selectedSite: site });
   },
 
   // 更新滚动位置
@@ -164,102 +201,6 @@ Page({
         var scrollLeft = itemLeft - (containerWidth - itemWidth) / 2
         that.setData({ scrollLeft: scrollLeft })
       }
-    })
-  },
-
-  // 显示站点编辑层
-  showSiteEdit: function() {
-    this.setData({ showSiteEdit: true })
-  },
-
-  // 隐藏站点编辑层
-  hideSiteEdit: function() {
-    this.setData({ showSiteEdit: false })
-  },
-
-  // 阻止事件冒泡
-  stopPropagation: function() {},
-
-  // 切换站点置顶状态
-  togglePinSite: function(e) {
-    var site = e.currentTarget.dataset.site
-    var sites = this.data.sites
-    var index = sites.findIndex(function(s) { return s.id === site.id })
-    if (index !== -1) {
-      sites[index].pinned = !sites[index].pinned
-      this.setData({ sites: sites })
-      
-      // 更新全局设置
-      var pinnedSites = app.globalData.settings.pinnedSites || []
-      if (sites[index].pinned) {
-        if (pinnedSites.indexOf(site.id) === -1) {
-          pinnedSites.push(site.id)
-        }
-      } else {
-        var pinIndex = pinnedSites.indexOf(site.id)
-        if (pinIndex !== -1) {
-          pinnedSites.splice(pinIndex, 1)
-        }
-      }
-      app.globalData.settings.pinnedSites = pinnedSites
-      app.saveSettings()
-      
-      // 重新排序
-      this.loadData()
-    }
-  },
-
-  // 开始拖动
-  startDrag: function(e) {
-    var site = e.currentTarget.dataset.site
-    this.setData({
-      dragItem: site,
-      dragStartY: e.touches[0].clientY
-    })
-  },
-
-  // 拖动中
-  onDragMove: function(e) {
-    if (!this.data.dragItem) return
-    
-    var that = this
-    var currentY = e.touches[0].clientY
-    var deltaY = currentY - this.data.dragStartY
-    
-    // 计算目标位置
-    var query = wx.createSelectorQuery()
-    query.selectAll('.edit-item').boundingClientRect()
-    query.exec(function(res) {
-      if (res[0]) {
-        var items = res[0]
-        var dragIndex = items.findIndex(function(item) {
-          return item.dataset.siteId === that.data.dragItem.id
-        })
-        if (dragIndex !== -1) {
-          var itemHeight = items[0].height
-          var targetIndex = Math.round(deltaY / itemHeight) + dragIndex
-          if (targetIndex >= 0 && targetIndex < items.length) {
-            // 更新站点顺序
-            var sites = that.data.sites
-            var site = sites.splice(dragIndex, 1)[0]
-            sites.splice(targetIndex, 0, site)
-            that.setData({ sites: sites })
-            
-            // 更新全局设置
-            var siteOrder = sites.map(function(s) { return s.id })
-            app.globalData.settings.siteOrder = siteOrder
-            app.saveSettings()
-          }
-        }
-      }
-    })
-  },
-
-  // 结束拖动
-  endDrag: function() {
-    this.setData({
-      dragItem: null,
-      dragStartY: 0
     })
   },
 
@@ -290,5 +231,41 @@ Page({
     return d.getFullYear() + '-' + 
            String(d.getMonth() + 1).padStart(2, '0') + '-' + 
            String(d.getDate()).padStart(2, '0')
-  }
+  },
+
+  // 切换站点折叠状态
+  toggleSiteCollapse: function(e) {
+    const siteId = e.currentTarget.dataset.siteId;
+    // 一定要新建对象，避免引用问题
+    const collapsedSites = { ...this.data.collapsedSites };
+    collapsedSites[siteId] = !collapsedSites[siteId];
+    this.setData({ collapsedSites });
+  },
+
+  // 切换所有站点折叠状态
+  toggleAllSites: function() {
+    const isCollapse = !this.data.isAllCollapsed;
+    const collapsedSites = {};
+    // 只折叠9个实际站点，不包含推荐
+    this.data.sites.forEach(site => {
+      if (site.id !== 'recommended' && this.data.groupedHotItems[site.id]) {
+        collapsedSites[site.id] = isCollapse;
+      }
+    });
+    this.setData({ 
+      collapsedSites,
+      isAllCollapsed: isCollapse
+    });
+  },
+
+  openNavSort: function() {
+    wx.navigateTo({ url: '/pages/settings/navsort' });
+  },
+
+  onAllSitesBtnTap: function(e) {
+    if (e && typeof e.stopPropagation === 'function') {
+      e.stopPropagation();
+    }
+    this.toggleAllSites();
+  },
 }) 

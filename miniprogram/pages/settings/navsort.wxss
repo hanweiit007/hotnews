@@ -1,0 +1,210 @@
+.navsort-container {
+  padding: 32rpx;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+.navsort-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 32rpx;
+  position: relative;
+}
+.navsort-title {
+  font-size: 36rpx;
+  font-weight: 500;
+}
+.navsort-edit-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(90deg, #1890ff 0%, #40a9ff 100%);
+  border-radius: 24rpx;
+  padding: 10rpx 38rpx;
+  border: none;
+  box-shadow: 0 4rpx 16rpx rgba(24,144,255,0.15);
+  transition: background 0.2s, box-shadow 0.2s;
+  z-index: 10;
+  letter-spacing: 2rpx;
+}
+.navsort-edit-btn:active {
+  background: linear-gradient(90deg, #1677c6 0%, #1890ff 100%);
+  box-shadow: 0 2rpx 8rpx rgba(24,144,255,0.10);
+}
+.navsort-section {
+  margin-bottom: 40rpx;
+}
+.navsort-section-title {
+  font-size: 26rpx;
+  color: #aaa;
+  margin-bottom: 12rpx;
+  display: block;
+  letter-spacing: 2rpx;
+}
+.navsort-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18rpx;
+}
+.navsort-item {
+  border: 2rpx solid #1890ff;
+  background: #e6f7ff;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  color: #1890ff;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+  transition: color 0.2s, background 0.2s;
+  padding: 18rpx 32rpx 18rpx 24rpx;
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 120rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+  transition: transform 0.25s cubic-bezier(.4,2,.6,1), box-shadow 0.2s, background 0.2s;
+}
+.navsort-item .site-name {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #222;
+  letter-spacing: 2rpx;
+}
+.navsort-item.navsort-phantom {
+  border: 2rpx dashed #1890ff;
+  background: #e6f7ff;
+  color: #bbb;
+  font-weight: 400;
+  opacity: 0.5;
+}
+.navsort-item text {
+  font-size: 28rpx;
+  font-weight: 500;
+  letter-spacing: 1rpx;
+}
+.navsort-remove, .navsort-add {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  margin: 0;
+  font-size: 24rpx;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2rpx 8rpx rgba(255,77,79,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  z-index: 2;
+  transition: background 0.2s;
+}
+.navsort-remove {
+  color: #ff4d4f;
+  background: #fff0f0;
+}
+.navsort-remove:active {
+  background: #ffeaea;
+}
+.navsort-add {
+  color: #52c41a;
+  background: #f6ffed;
+}
+.navsort-add:active {
+  background: #eaffea;
+}
+
+@keyframes shake {
+  0% { transform: translateX(0) rotate(-2deg); }
+  20% { transform: translateX(-2rpx) rotate(2deg); }
+  40% { transform: translateX(2rpx) rotate(-2deg); }
+  60% { transform: translateX(-2rpx) rotate(2deg); }
+  80% { transform: translateX(2rpx) rotate(-2deg); }
+  100% { transform: translateX(0) rotate(0); }
+}
+
+.navsort-placeholder {
+  width: 100%;
+  height: 60rpx;
+  background: #e6f7ff;
+  border: 2rpx dashed #1890ff;
+  border-radius: 16rpx;
+  margin: 8rpx 0;
+}
+.navsort-item.dragging {
+  opacity: 0.9;
+  box-shadow: 0 8rpx 32rpx rgba(24,144,255,0.18);
+  background: #fff;
+  pointer-events: none;
+  position: fixed;
+  z-index: 999;
+  transition: none;
+}
+
+.navsort-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+.navsort-simple-btn {
+  font-size: 28rpx;
+  color: #1890ff;
+  padding: 0 20rpx;
+  background: none;
+  border: none;
+  border-radius: 8rpx;
+  font-weight: 500;
+}
+.navsort-simple-btn:active {
+  color: #1677c6;
+  background: #e6f7ff;
+}
+
+/* 在文件末尾添加 */
+/* 抖动动画 */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-3px); }
+  40% { transform: translateX(3px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+/* 应用抖动动画 */
+.navsort-item.shake {
+  animation: shake 0.5s infinite;
+}
+
+/* 修改现有占位符样式（第66行） */
+/* 修改占位块样式，确保只在拖拽时显示虚线 */
+.navsort-item.navsort-phantom {
+  border: 1px dashed #999 !important; /* 虚线占位块 */
+  background: #e6f7ff;
+  min-height: 80px;
+  color: transparent; /* 隐藏文字 */
+}
+
+/* 默认站点块 - 确保实线样式 */
+.navsort-item {
+  border: 1px solid #1890ff; /* 实线边框 */
+  background: #fff;
+  /* 其他样式保持不变 */
+}
+
+/* 确保非编辑模式下无抖动 */
+.navsort-item.shake {
+  animation: shake 0.5s infinite;
+}
+
+/* 添加空内容占位块的隐藏样式 */
+.navsort-item:empty {
+  display: none;
+}
+.navsort-item.navsort-phantom {
+  background-color: rgba(255, 255, 255, 0.6);
+  animation: none; /* 占位符不抖动 */
+}

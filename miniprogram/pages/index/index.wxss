@@ -28,13 +28,22 @@
 .nav-items {
   display: inline-flex;
   height: 100%;
-  padding: 0 20rpx;
+  padding: 0 8rpx;
+}
+
+/* 推荐Tab固定样式 */
+.nav-bar > .nav-item {
+  flex-shrink: 0;
+  height: 100%;
+  padding: 0 16rpx;
+  display: flex;
+  align-items: center;
 }
 
 .nav-item {
   position: relative;
   height: 100%;
-  padding: 0 32rpx;
+  padding: 0 16rpx;
   display: flex;
   align-items: center;
   transition: all 0.3s ease;
@@ -88,95 +97,18 @@
   color: #666;
 }
 
-/* 站点编辑层 */
-.site-edit-layer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 200;
-  visibility: hidden;
-  opacity: 0;
-  transition: all 0.3s ease;
-}
-
-.site-edit-layer.show {
-  visibility: visible;
-  opacity: 1;
-}
-
-.edit-content {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: #fff;
-  border-radius: 24rpx 24rpx 0 0;
-  padding: 32rpx;
-  transform: translateY(100%);
-  transition: transform 0.3s ease;
-}
-
-.site-edit-layer.show .edit-content {
-  transform: translateY(0);
-}
-
-.edit-header {
+.nav-sort-btn {
+  width: 64rpx;
+  height: 100%;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 32rpx;
+  justify-content: center;
+  margin-left: 16rpx;
 }
 
-.edit-title {
-  font-size: 32rpx;
-  font-weight: 500;
-  color: #333;
-}
-
-.edit-tip {
-  font-size: 24rpx;
-  color: #999;
-}
-
-.edit-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20rpx;
-}
-
-.edit-item {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20rpx;
-  background: #f5f5f5;
-  border-radius: 12rpx;
-  transition: all 0.3s ease;
-}
-
-.edit-item.pinned {
-  background: #fff5f5;
-}
-
-.edit-item .edit-icon {
-  font-size: 36rpx;
-  margin-bottom: 8rpx;
-}
-
-.edit-item .edit-name {
-  font-size: 24rpx;
+.sort-icon {
+  font-size: 40rpx;
   color: #666;
-}
-
-.edit-item .pin-icon {
-  position: absolute;
-  top: 8rpx;
-  right: 8rpx;
-  font-size: 24rpx;
 }
 
 /* 内容区域 */
@@ -235,12 +167,48 @@
 
 /* 站点网格 */
 .sites-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20rpx;
-  margin-bottom: 20rpx;
+  display: none;
 }
 
+/* 添加推荐模式样式 */
+.recommended-list {
+  padding: 0 20rpx;
+}
+
+.site-section {
+  margin-bottom: 30rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.site-section .site-header {
+  padding: 20rpx;
+  background: #f8f8f8;
+  border-bottom: 1rpx solid #eee;
+}
+
+.site-section .site-title {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.site-section .items-list {
+  padding: 0 20rpx;
+}
+
+.site-section .hot-item {
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.site-section .hot-item:last-child {
+  border-bottom: none;
+}
+
+/* 站点网格 */
 .site-card {
   background: #fff;
   border-radius: 12rpx;
@@ -392,6 +360,51 @@
   font-size: 28rpx;
 }
 
+/* 折叠控制按钮 */
+.collapse-controls {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10rpx 20rpx;
+  background: #f8f8f8;
+  border-bottom: 1rpx solid #eee;
+}
+
+.collapse-btn {
+  display: flex;
+  align-items: center;
+  padding: 10rpx 20rpx;
+  font-size: 24rpx;
+  color: #666;
+  background: #fff;
+  border-radius: 8rpx;
+  border: 1rpx solid #ddd;
+}
+
+.collapse-btn:active {
+  background: #f0f0f0;
+}
+
+.collapse-icon {
+  display: inline-block;
+  margin-right: 8rpx;
+  transition: transform 0.3s;
+}
+
+.collapse-icon.collapsed {
+  transform: rotate(-90deg);
+}
+
+/* 折叠动画 */
+.items-list {
+  max-height: 2000rpx;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.items-list.collapsed {
+  max-height: 0;
+}
+
 /* 暗黑模式适配 */
 @media (prefers-color-scheme: dark) {
   .nav-bar {
@@ -433,5 +446,29 @@
 
   .edit-item .edit-name {
     color: #999;
+  }
+
+  .collapse-controls {
+    background: #2c2c2e;
+    border-bottom-color: rgba(255,255,255,0.1);
+  }
+
+  .collapse-btn {
+    background: #3a3a3c;
+    color: #fff;
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  .collapse-btn:active {
+    background: #4a4a4c;
+  }
+
+  .site-header {
+    background: #2c2c2e;
+    border-bottom-color: rgba(255,255,255,0.1);
+  }
+
+  .site-title {
+    color: #fff;
   }
 } 

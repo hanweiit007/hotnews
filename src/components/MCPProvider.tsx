@@ -34,12 +34,10 @@ const MCPProvider: React.FC<MCPProviderProps> = ({ children }) => {
         
         // 检查 MCP 是否可用
         if (mcpInfo.exists && mcpInfo.hasGetHotNews) {
-          console.log('MCP 服务已就绪');
           setIsMCPReady(true);
         } else {
           // 延迟再次尝试
           if (retryCount < 3) {
-            console.log(`MCP 服务未就绪，重试中... (${retryCount + 1}/3)`);
             setTimeout(() => setRetryCount(prev => prev + 1), 1000);
           } else {
             console.error('MCP 服务初始化失败');

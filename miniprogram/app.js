@@ -48,19 +48,6 @@ App({
   },
 
   onLaunch: function() {
-    if (!wx.cloud) {
-      console.error('请使用 2.2.3 或以上的基础库以使用云能力')
-    } else {
-      wx.cloud.init({
-        // env 参数说明：
-        // env 参数决定接下来小程序发起的云开发调用（wx.cloud.xxx）会默认请求到哪个云环境的资源
-        // 此处请填入环境 ID, 环境 ID 可打开云控制台查看
-        // 如不填则使用默认环境（第一个创建的环境）
-        env: 'hotnews-xxxxx', // 请将此处替换为你的云开发环境ID
-        traceUser: true, // 是否将用户访问记录到用户管理中，在控制台中可见
-      })
-    }
-
     // 获取系统信息
     wx.getSystemInfo({
       success: e => {
@@ -103,8 +90,21 @@ App({
   },
 
   // 保存设置
-  saveSettings: function() {
-    wx.setStorageSync('settings', this.globalData.settings)
+  saveSettings: function(settings) {
+    // 合并现有设置和新设置
+    var currentSettings = this.globalData.settings || {}
+    var newSettings = {
+      ...currentSettings,
+      ...settings,
+      // 确保这些字段始终存在
+      recommendedItemsPerSite: settings.recommendedItemsPerSite || 3,
+      siteItemsPerSite: settings.siteItemsPerSite || 10,
+      autoRefresh: settings.autoRefresh !== undefined ? settings.autoRefresh : true,
+      darkMode: settings.darkMode !== undefined ? settings.darkMode : false
+    }
+    
+    this.globalData.settings = newSettings
+    wx.setStorageSync('settings', newSettings)
   },
 
   initData: function() {
@@ -205,101 +205,128 @@ App({
   },
 
   // 获取所有热点数据
-  getAllHotItems: function(limit) {
-    var that = this
+  getAllHotItems: function() {
+    const that = this;
     return new Promise(function(resolve, reject) {
-      console.log('开始获取热点数据，URL:', that.globalData.mcpBaseUrl + '/api/hotnews')
+      // 获取所有站点的MCP ID
+      const siteIds = [
+        that.siteMcpIdMap.zhihu,    // 知乎
+        that.siteMcpIdMap.weibo,    // 微博
+        that.siteMcpIdMap.baidu,    // 百度
+        that.siteMcpIdMap.bilibili, // B站
+        that.siteMcpIdMap.douyin,   // 抖音
+        that.siteMcpIdMap.hupu,     // 虎扑
+        that.siteMcpIdMap.douban,   // 豆瓣
+        that.siteMcpIdMap['36kr'],  // 36氪
+        that.siteMcpIdMap.itnews    // IT新闻
+      ];
       
-      // 获取所有站点的 ID
-      const siteIds = Object.values(that.siteMcpIdMap)
-      console.log('请求的站点IDs:', siteIds)
-      
+      // 调用本地MCP服务器获取热点数据
       wx.request({
-        url: that.globalData.mcpBaseUrl + '/api/hotnews',
+        url: `${that.globalData.mcpBaseUrl}/api/hotnews`,
         method: 'POST',
+        header: {
+          'Content-Type': 'application/json'
+        },
         data: {
-          siteIds: siteIds
+          sources: siteIds
         },
         success: function(res) {
-          console.log('MCP 服务响应:', res)
-          
-          if (res.statusCode === 200 && res.data) {
-            // 确保返回的数据结构正确
-            const result = {
-              sites: [],
-              hotItemsBySite: {},
+          if (res.statusCode === 200 && Array.isArray(res.data)) {
+            // 适配数据结构
+            const siteKeys = [
+              'zhihu', 'weibo', 'baidu', 'bilibili', 'douyin', 'hupu', 'douban', '36kr', 'itnews'
+            ];
+            const sites = res.data.map((item, idx) => ({
+              id: siteKeys[idx],
+              name: item.name,
+              mcpId: siteIds[idx]
+            }));
+            const hotItemsBySite = {};
+            res.data.forEach((item, idx) => {
+              const siteId = siteKeys[idx];
+              hotItemsBySite[siteId] = item.data;
+            });
+            resolve({
+              sites,
+              hotItemsBySite,
               lastUpdated: new Date().toISOString()
-            }
-
-            // 处理每个站点的数据
-            Object.keys(that.siteMcpIdMap).forEach(function(siteId, index) {
-              const siteName = that.getSiteName(siteId)
-              const mcpId = that.siteMcpIdMap[siteId]
-              result.sites.push({
-                id: siteId,
-                name: siteName,
-                mcpId: mcpId
-              })
-
-              // 使用数组索引获取对应站点的数据
-              const siteData = res.data[index]
-              console.log(`站点 ${siteId} (MCP ID: ${mcpId}) 的数据:`, siteData)
-              
-              if (siteData && Array.isArray(siteData.data)) {
-                // 为每个热点项添加排名和必要的字段
-                const itemsWithRank = siteData.data.map((item, index) => {
-                  // 根据不同站点处理数据
-                  let processedItem = {
-                    id: item.id || `item_${index}`,
-                    title: item.title || '',
-                    url: item.url || '',
-                    hot: item.hot || '0',
-                    publishTime: item.time || new Date().toISOString(),
-                    summary: item.summary || '',
-                    rank: index + 1
-                  }
-
-                  // 根据站点类型添加特定字段
-                  switch (siteId) {
-                    case 'zhihu':
-                      processedItem.summary = item.excerpt || ''
-                      break
-                    case 'weibo':
-                      processedItem.summary = item.content || ''
-                      break
-                    case 'baidu':
-                      processedItem.summary = item.desc || ''
-                      break
-                  }
-
-                  return processedItem
-                })
-                result.hotItemsBySite[siteId] = itemsWithRank.slice(0, limit)
-                console.log(`站点 ${siteId} 的热点数据:`, result.hotItemsBySite[siteId])
-              } else {
-                result.hotItemsBySite[siteId] = []
-                console.log(`站点 ${siteId} 没有数据`)
-              }
-            })
-
-            console.log('处理后的数据:', result)
-            resolve(result)
+            });
           } else {
-            console.error('MCP 服务响应错误:', res)
-            reject(new Error('请求失败或数据格式错误'))
+            reject(new Error('获取热点数据失败'));
           }
         },
         fail: function(error) {
-          console.error('MCP 服务请求失败:', error)
-          reject(error)
+          console.error('调用MCP服务器失败:', error);
+          reject(error);
         }
-      })
-    })
+      });
+    });
+  },
+
+  getSiteHotItems: function(siteId, limit = 10) {
+    const that = this;
+    return new Promise(function(resolve, reject) {
+      // 获取站点的MCP ID
+      const mcpId = that.siteMcpIdMap[siteId];
+      if (!mcpId) {
+        reject(new Error(`未知的站点ID: ${siteId}`));
+        return;
+      }
+      
+      // 调用本地MCP服务器获取特定站点的热点数据
+      wx.request({
+        url: `${that.globalData.mcpBaseUrl}/api/hotnews`,
+        method: 'POST',
+        header: {
+          'Content-Type': 'application/json'
+        },
+        data: {
+          sources: [mcpId],
+          limit: limit
+        },
+        success: function(res) {
+          if (res.statusCode === 200 && res.data && res.data.length > 0) {
+            const siteData = res.data[0];
+            if (siteData && siteData.data) {
+              resolve(siteData.data);
+            } else {
+              resolve([]);
+            }
+          } else {
+            resolve([]);
+          }
+        },
+        fail: function(error) {
+          console.error('获取站点数据失败:', error);
+          reject(error);
+        }
+      });
+    });
   },
 
   // 刷新数据
   refreshData: function() {
-    console.log('刷新数据，itemsPerSite:', this.globalData.settings.itemsPerSite)
-    return this.getAllHotItems(this.globalData.settings.itemsPerSite)
+    const that = this;
+    that.globalData.isLoading = true;
+    
+    // 获取所有热点数据
+    that.getAllHotItems()
+      .then(function(allHotItems) {
+        that.globalData.allHotItems = allHotItems;
+        that.globalData.lastUpdated = new Date();
+      })
+      .catch(function(error) {
+        console.error('刷新数据失败:', error);
+        // 显示错误提示
+        wx.showToast({
+          title: '数据刷新失败，请检查网络连接',
+          icon: 'none',
+          duration: 2000
+        });
+      })
+      .finally(function() {
+        that.globalData.isLoading = false;
+      });
   }
 }); 

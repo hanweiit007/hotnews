@@ -5,12 +5,8 @@ import { data } from 'react-router-dom';
 // 从MCP获取热搜数据
 export const fetchHotNews = async (siteIds: number[]): Promise<any> => {
   try {
-    // 添加调试信息
-    console.log('开始尝试获取热点数据，请求站点IDs:', siteIds);
-    
     // 检查 MCP 客户端是否存在
     const mcp = (window as any).mcp;
-    console.log('MCP服务状态检查 - window.mcp存在:', typeof mcp !== 'undefined');
     
     if (typeof mcp === 'undefined' || typeof mcp.get_hot_news !== 'function') {
       console.error('MCP服务不可用，请确保MCP服务正确配置和运行');
@@ -19,9 +15,7 @@ export const fetchHotNews = async (siteIds: number[]): Promise<any> => {
     }
     
     // 使用 MCP 客户端获取数据
-    console.log('使用 MCP 服务获取数据...');
     const response = await mcp.get_hot_news(siteIds);
-    console.log('MCP 返回数据:', response);
     
     // 检查返回的数据结构
     if (!response || !Array.isArray(response)) {
@@ -38,9 +32,6 @@ export const fetchHotNews = async (siteIds: number[]): Promise<any> => {
 
 // 将MCP返回的数据转换为应用内部的HotItem格式
 const convertToHotItem = (item: any, siteId: SiteId): HotItem => {
-  // 添加调试信息
-  console.log('Converting item for site:', siteId, item);
-  
   // 生成唯一ID
   const generateUniqueId = (item: any, siteId: SiteId): string => {
     const baseId = item.id || item.title || item.url;
@@ -130,8 +121,6 @@ const CACHE_EXPIRY = 5 * 60 * 1000;
 // 获取所有网站的热点
 export const getAllHotItems = async (limitPerSite: number = 10): Promise<HotItem[]> => {
   try {
-    console.log('开始获取所有网站的热点数据...');
-    
     // 获取所有平台的数据
     const siteIds = [
       siteMcpIdMap.zhihu,    // 知乎
@@ -145,9 +134,7 @@ export const getAllHotItems = async (limitPerSite: number = 10): Promise<HotItem
       siteMcpIdMap.itnews    // IT新闻
     ];
     
-    console.log('请求的站点IDs:', siteIds);
     const response = await fetchHotNews(siteIds);
-    console.log('获取到的原始数据:', response);
     
     const allItems: HotItem[] = [];
     
@@ -158,16 +145,13 @@ export const getAllHotItems = async (limitPerSite: number = 10): Promise<HotItem
           key => siteMcpIdMap[key as SiteId] === siteIds[index]
         ) as SiteId;
         
-        console.log(`处理${siteDisplayNames[siteId]}数据...`);
         const siteItems = siteResponse.data
           .slice(0, limitPerSite)
           .map((item: any) => convertToHotItem(item, siteId));
-        console.log(`${siteDisplayNames[siteId]}数据转换结果:`, siteItems);
         allItems.push(...siteItems);
       }
     });
     
-    console.log('所有站点数据获取完成，总数:', allItems.length);
     return allItems;
   } catch (error) {
     console.error('获取热点数据失败:', error);
@@ -178,8 +162,6 @@ export const getAllHotItems = async (limitPerSite: number = 10): Promise<HotItem
 // 获取特定网站的热点
 export const getSiteHotItems = async (siteId: SiteId, limit: number = 10): Promise<HotItem[]> => {
   try {
-    console.log(`开始获取站点 ${siteId} 的热点数据...`);
-    
     // 检查站点ID是否有效
     if (!siteMcpIdMap[siteId]) {
       console.error(`未知的站点ID: ${siteId}`);
@@ -188,7 +170,6 @@ export const getSiteHotItems = async (siteId: SiteId, limit: number = 10): Promi
     
     // 获取特定站点的MCP ID
     const mcpId = siteMcpIdMap[siteId];
-    console.log(`站点 ${siteId} 的MCP ID:`, mcpId);
     
     // 检查缓存
     const cacheKey = `site_${siteId}`;
@@ -199,58 +180,40 @@ export const getSiteHotItems = async (siteId: SiteId, limit: number = 10): Promi
     
     // 如果缓存存在且未过期，使用缓存数据
     if (cachedData && (now - cachedData.timestamp) < CACHE_EXPIRY) {
-      console.log('使用缓存数据');
       items = cachedData.data;
     } else {
       // 缓存不存在或已过期，重新获取数据
-      console.log('缓存不存在或已过期，重新获取数据');
       const response = await fetchHotNews([mcpId]);
       
-      if (!response || !response[0] || !response[0].data) {
-        console.error(`未能获取站点 ${siteId} 的数据`);
-        return [];
+      if (response && response[0]?.data) {
+        items = response[0].data;
+        // 更新缓存
+        dataCache[cacheKey] = {
+          data: items,
+          timestamp: now
+        };
       }
-      
-      items = response[0].data || [];
-      
-      // 更新缓存
-      dataCache[cacheKey] = {
-        data: items,
-        timestamp: now
-      };
     }
     
-    // 只取前limit个
-    const limitedItems = items.slice(0, limit);
-    
-    // 转换为HotItem格式
-    const convertedItems = limitedItems.map((item: any) => convertToHotItem(item, siteId));
-    console.log(`站点 ${siteId} 的转换后项目数:`, convertedItems.length);
+    // 转换数据格式
+    const convertedItems = items
+      .slice(0, limit)
+      .map((item: any) => convertToHotItem(item, siteId));
     
     return convertedItems;
   } catch (error) {
-    console.error(`Error getting hot items for site ${siteId}:`, error);
-    return [];
+    console.error(`获取站点 ${siteId} 的热点数据失败:`, error);
+    throw error;
   }
 };
 
-// 获取特定热点的详情
+// 获取热点详情
 export const getHotItemDetails = async (itemId: string): Promise<HotItem | null> => {
   try {
-    console.log(`开始获取热点 ${itemId} 的详情...`);
-    
-    // 解析itemId，格式为: {siteId}-{id}
-    const [siteId, id] = itemId.split('-');
-    console.log('解析的站点ID和项目ID:', { siteId, id });
-    
-    // 确保siteId有效
-    if (!siteId || !Object.keys(siteMcpIdMap).includes(siteId as SiteId)) {
-      console.error(`无效的站点ID: ${siteId}`);
-      return null;
-    }
-    
-    // 获取特定站点的MCP ID
-    const mcpId = siteMcpIdMap[siteId as SiteId];
+    // 解析项目ID获取站点ID
+    const parts = itemId.split('-');
+    const siteId = parts[0] as SiteId;
+    const id = parts.slice(1, -2).join('-'); // 移除时间戳和随机数
     
     // 检查缓存
     const cacheKey = `site_${siteId}`;
@@ -261,66 +224,37 @@ export const getHotItemDetails = async (itemId: string): Promise<HotItem | null>
     
     // 如果缓存存在且未过期，使用缓存数据
     if (cachedData && (now - cachedData.timestamp) < CACHE_EXPIRY) {
-      console.log('使用缓存数据获取详情');
       items = cachedData.data;
     } else {
       // 缓存不存在或已过期，重新获取数据
-      console.log('缓存不存在或已过期，重新获取数据');
+      const mcpId = siteMcpIdMap[siteId];
       const response = await fetchHotNews([mcpId]);
       
-      if (!response || !response[0] || !response[0].data) {
-        console.error(`未能获取站点 ${siteId} 的数据`);
-        return null;
+      if (response && response[0]?.data) {
+        items = response[0].data;
+        // 更新缓存
+        dataCache[cacheKey] = {
+          data: items,
+          timestamp: now
+        };
       }
-      
-      items = response[0].data || [];
-      
-      // 更新缓存
-      dataCache[cacheKey] = {
-        data: items,
-        timestamp: now
-      };
     }
     
-    // 查找对应ID的项目
-    const item = items.find((item: any) => {
-      // 尝试多种可能的ID匹配方式
-      const possibleIds = [
-        `${siteId}-${item.id}`,
-        `${siteId}-${item.title}`,
-        `${siteId}-${item.index}`,
-        `${siteId}-${item.url}`
-      ];
-      return possibleIds.includes(itemId);
-    });
+    // 查找匹配的项目
+    const originalItem = items.find((item: any) => 
+      item.id === id || item.title === id || item.url === id
+    );
     
-    if (item) {
-      // 转换为基础HotItem格式
-      const convertedItem = convertToHotItem(item, siteId as SiteId);
-      
-      // 添加更多详情信息
-      const enhancedItem: HotItem = {
-        ...convertedItem,
-        metadata: {
-          ...convertedItem.metadata,
-          // 添加原始数据中的其他字段
-          rawData: {
-            index: item.index,
-            hot: item.hot,
-            updateTime: item.update_time,
-            // 如果有其他有用的字段，也可以添加到这里
-          }
-        }
-      };
-      
-      console.log('转换后的项目详情:', enhancedItem);
-      return enhancedItem;
+    if (!originalItem) {
+      return null;
     }
     
-    console.error(`未找到ID为 ${itemId} 的项目`);
-    return null;
+    // 转换为HotItem格式
+    const enhancedItem = convertToHotItem(originalItem, siteId);
+    
+    return enhancedItem;
   } catch (error) {
-    console.error(`Error getting details for item ${itemId}:`, error);
+    console.error(`获取热点详情失败:`, error);
     return null;
   }
 };
