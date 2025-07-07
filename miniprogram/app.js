@@ -4,7 +4,8 @@ App({
     allHotItems: [],
     isLoading: false,
     lastUpdated: null,
-    mcpBaseUrl: 'http://localhost:3001', // 本地开发环境地址
+    // mcpBaseUrl: 'http://localhost:3001', // 本地开发环境地址
+    mcpBaseUrl: 'http://localhost:80', // pm2部署地址
     settings: {
       itemsPerSite: 50,
       pinnedSites: [],
