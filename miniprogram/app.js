@@ -4,8 +4,9 @@ App({
     allHotItems: [],
     isLoading: false,
     lastUpdated: null,
-    // mcpBaseUrl: 'http://localhost:3001', // 本地开发环境地址
-    mcpBaseUrl: 'http://localhost:80', // pm2部署地址
+    // mcpBaseUrl: 'http://localhost:9000', // 本地开发环境地址
+    // mcpBaseUrl: 'http://49.232.145.233:3001 ', // pm2部署地址
+    mcpBaseUrl: 'https://1367911501-h3462r582a.ap-beijing.tencentscf.com', // 腾讯云函数
     settings: {
       itemsPerSite: 50,
       pinnedSites: [],

@@ -7,7 +7,7 @@
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#E53E3E",
-    "navigationBarTitleText": "热搜聚合",
+    "navigationBarTitleText": "热浪聚合",
     "navigationBarTextStyle": "white"
   },
   "tabBar": {
