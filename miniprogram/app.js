@@ -1,3 +1,5 @@
+const siteConfig = require('./config/siteConfig');
+
 App({
   globalData: {
     sites: [],
@@ -5,7 +7,7 @@ App({
     isLoading: false,
     lastUpdated: null,
     // mcpBaseUrl: 'http://localhost:9000', // 本地开发环境地址
-    // mcpBaseUrl: 'http://49.232.145.233:3001 ', // pm2部署地址
+    // mcpBaseUrl: 'http://49.232.145.233:3001', // pm2部署地址
     mcpBaseUrl: 'https://1367911501-h3462r582a.ap-beijing.tencentscf.com', // 腾讯云函数
     settings: {
       itemsPerSite: 50,
@@ -15,7 +17,9 @@ App({
     userInfo: null,
     StatusBar: null,
     Custom: null,
-    CustomBar: null
+    CustomBar: null,
+    retryCount: 0, // 添加重试计数
+    maxRetries: 3  // 最大重试次数
   },
 
   // 网站ID与MCP ID的映射关系
@@ -46,7 +50,87 @@ App({
 
   // 获取站点名称
   getSiteName: function(siteId) {
-    return this.siteNameMap[siteId] || siteId;
+    const site = siteConfig.sites.find(s => s.id === siteId);
+    return site ? site.name : '未知站点';
+  },
+
+  // 新增：获取文章内容
+  getArticleContent: function(url) {
+    const that = this;
+    return new Promise(function(resolve, reject) {
+      console.log('app.js getArticleContent调用，URL:', url);
+      
+      // 简单验证URL格式
+      if (!url || typeof url !== 'string') {
+        console.error('URL验证失败:', url);
+        reject(new Error('无效的文章链接'));
+        return;
+      }
+      
+      // 使用正则表达式验证URL格式，兼容小程序环境
+      const urlPattern = /^https?:\/\/.+/i;
+      if (!urlPattern.test(url)) {
+        console.error('URL格式无效:', url);
+        reject(new Error('URL格式无效'));
+        return;
+      }
+
+      console.log('开始发送请求到:', `${that.globalData.mcpBaseUrl}/api/article-content`);
+      console.log('请求数据:', { url: url });
+
+      wx.request({
+        url: `${that.globalData.mcpBaseUrl}/api/article-content`,
+        method: 'POST',
+        timeout: 15000, // 增加到15秒超时
+        header: {
+          'Content-Type': 'application/json'
+        },
+        data: {
+          url: url
+        },
+        success: function(res) {
+          console.log('文章内容接口响应:', res);
+          if (res.statusCode === 200 && res.data) {
+            // 更宽松的数据验证 - 只要有title或content中的任意一个即可
+            const title = res.data.title || '无标题';
+            const content = res.data.content || '<p>暂无内容</p>';
+            const summary = res.data.summary || '';
+            
+            console.log('解析后的数据:', {
+              title: title,
+              contentLength: content.length,
+              summary: summary
+            });
+            
+            // 只要content不为空字符串就认为是有效数据
+            if (content && content.trim().length > 0) {
+              resolve({
+                title: title,
+                content: content,
+                summary: summary
+              });
+            } else {
+              console.error('内容为空，拒绝数据');
+              reject(new Error('文章内容为空'));
+            }
+          } else {
+            console.error('文章内容接口错误:', res.statusCode, res.data);
+            reject(new Error(`服务器返回错误: ${res.statusCode}`));
+          }
+        },
+        fail: function(error) {
+          console.error('获取文章内容网络失败:', error);
+          // 提供更友好的错误信息
+          if (error.errMsg && error.errMsg.includes('timeout')) {
+            reject(new Error('请求超时，请检查网络连接'));
+          } else if (error.errMsg && error.errMsg.includes('fail')) {
+            reject(new Error('网络连接失败，请检查网络设置'));
+          } else {
+            reject(new Error('获取文章内容失败，请稍后重试'));
+          }
+        }
+      });
+    });
   },
 
   onLaunch: function() {
@@ -71,12 +155,19 @@ App({
       this.globalData.settings = {
         itemsPerSite: settings.itemsPerSite || 50,
         pinnedSites: settings.pinnedSites || [],
-        siteOrder: settings.siteOrder || []
+        siteOrder: settings.siteOrder || [],
+        autoRefresh: settings.autoRefresh !== false, // 添加自动刷新默认值
+        refreshInterval: settings.refreshInterval || 5 // 添加刷新间隔默认值
       }
     }
 
     // 初始化数据
     this.initData();
+    
+    // 如果启用了自动刷新，启动定时器
+    if (this.globalData.settings.autoRefresh) {
+      this.startAutoRefresh();
+    }
   },
 
   // 加载设置
@@ -123,6 +214,7 @@ App({
       .then(function(allHotItems) {
         that.globalData.allHotItems = allHotItems;
         that.globalData.lastUpdated = new Date();
+        that.globalData.retryCount = 0; // 重置重试计数
       })
       .catch(function(error) {
         console.error('初始化数据失败:', error);
@@ -132,10 +224,20 @@ App({
           icon: 'none',
           duration: 2000
         });
-        // 3秒后自动重试
-        setTimeout(function() {
-          that.initData();
-        }, 3000);
+        // 有限重试
+        if (that.globalData.retryCount < that.globalData.maxRetries) {
+          that.globalData.retryCount++;
+          setTimeout(function() {
+            that.initData();
+          }, 3000);
+        } else {
+          console.error('达到最大重试次数，停止重试');
+          wx.showToast({
+            title: '网络连接失败，请稍后手动刷新',
+            icon: 'none',
+            duration: 3000
+          });
+        }
       })
       .finally(function() {
         that.globalData.isLoading = false;
@@ -207,9 +309,10 @@ App({
   },
 
   // 获取所有热点数据
-  getAllHotItems: function() {
+  getAllHotItems: function(limit = 10) {
     const that = this;
     return new Promise(function(resolve, reject) {
+      const query = `limit=${limit}`;
       // 获取所有站点的MCP ID
       const siteIds = [
         that.siteMcpIdMap.zhihu,    // 知乎
@@ -227,11 +330,13 @@ App({
       wx.request({
         url: `${that.globalData.mcpBaseUrl}/api/hotnews`,
         method: 'POST',
+        timeout: 10000, // 添加10秒超时
         header: {
           'Content-Type': 'application/json'
         },
         data: {
-          sources: siteIds
+          sources: siteIds,
+          limit: limit || 50 // 使用传入的限制参数
         },
         success: function(res) {
           if (res.statusCode === 200 && Array.isArray(res.data)) {
@@ -247,8 +352,13 @@ App({
             const hotItemsBySite = {};
             res.data.forEach((item, idx) => {
               const siteId = siteKeys[idx];
-              hotItemsBySite[siteId] = item.data;
+              hotItemsBySite[siteId] = item.data || [];
             });
+
+            // 生成推荐数据
+            const recommendedItems = that.generateRecommendedItems(hotItemsBySite);
+            hotItemsBySite.recommended = recommendedItems;
+            
             resolve({
               sites,
               hotItemsBySite,
@@ -266,6 +376,64 @@ App({
     });
   },
 
+  // 新增：生成推荐数据
+  generateRecommendedItems: function(hotItemsBySite) {
+    const allItems = [];
+    
+    // 从所有站点收集热点数据
+    Object.keys(hotItemsBySite).forEach(siteId => {
+      if (hotItemsBySite[siteId] && Array.isArray(hotItemsBySite[siteId])) {
+        hotItemsBySite[siteId].forEach((item, index) => {
+          allItems.push({
+            ...item,
+            originalSite: siteId,
+            originalRank: index + 1,
+            score: this.calculateItemScore(item, index, siteId)
+          });
+        });
+      }
+    });
+  
+  // 按分数排序并取前20个
+  return allItems
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 20)
+    .map((item, index) => ({
+      ...item,
+      rank: index + 1
+    }));
+  },
+
+  // 新增：计算推荐分数
+  calculateItemScore: function(item, rank, siteId) {
+    let score = 0;
+    
+    // 根据排名给分（排名越高分数越高）
+    score += Math.max(0, 50 - rank);
+    
+    // 根据站点权重给分
+    const siteWeights = {
+      'zhihu': 1.2,
+      'weibo': 1.1,
+      'baidu': 1.0,
+      'bilibili': 0.9,
+      'douyin': 0.8,
+      'hupu': 0.7,
+      'douban': 0.6,
+      '36kr': 0.8,
+      'itnews': 0.7
+    };
+    score *= (siteWeights[siteId] || 1.0);
+    
+    // 根据热度给分（如果有的话）
+    if (item.hot && typeof item.hot === 'string') {
+      const hotNum = parseInt(item.hot.replace(/[^\d]/g, '')) || 0;
+      score += Math.log10(hotNum + 1) * 5;
+    }
+    
+    return score;
+  },
+
   getSiteHotItems: function(siteId, limit = 10) {
     const that = this;
     return new Promise(function(resolve, reject) {
@@ -280,6 +448,7 @@ App({
       wx.request({
         url: `${that.globalData.mcpBaseUrl}/api/hotnews`,
         method: 'POST',
+        timeout: 10000, // 添加10秒超时
         header: {
           'Content-Type': 'application/json'
         },
@@ -310,25 +479,48 @@ App({
   // 刷新数据
   refreshData: function() {
     const that = this;
-    that.globalData.isLoading = true;
-    
-    // 获取所有热点数据
-    that.getAllHotItems()
-      .then(function(allHotItems) {
-        that.globalData.allHotItems = allHotItems;
-        that.globalData.lastUpdated = new Date();
-      })
-      .catch(function(error) {
-        console.error('刷新数据失败:', error);
-        // 显示错误提示
-        wx.showToast({
-          title: '数据刷新失败，请检查网络连接',
-          icon: 'none',
-          duration: 2000
+    return new Promise(function(resolve, reject) {
+      that.globalData.isLoading = true;
+      
+      that.getAllHotItems()
+        .then(function(allHotItems) {
+          that.globalData.allHotItems = allHotItems;
+          that.globalData.lastUpdated = new Date();
+          resolve(allHotItems);
+        })
+        .catch(function(error) {
+          console.error('刷新数据失败:', error);
+          wx.showToast({
+            title: '数据刷新失败，请检查网络连接',
+            icon: 'none',
+            duration: 2000
+          });
+          reject(error);
+        })
+        .finally(function() {
+          that.globalData.isLoading = false;
         });
-      })
-      .finally(function() {
-        that.globalData.isLoading = false;
-      });
-  }
-}); 
+    });
+  },
+  
+  // 添加自动刷新功能
+  startAutoRefresh: function() {
+    const that = this;
+    const interval = that.globalData.settings.refreshInterval || 5;
+    // 清除已有定时器
+    that.stopAutoRefresh();
+    // 设置新定时器
+    that.refreshTimer = setInterval(() => {
+      if (!that.globalData.isLoading) {
+        that.refreshData();
+      }
+    }, interval * 60 * 1000);
+  },
+  
+  stopAutoRefresh: function() {
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+  },
+});

@@ -2,6 +2,7 @@
   "pages": [
     "pages/index/index",
     "pages/webview/webview",
+    "pages/article/article",
     "pages/settings/settings",
     "pages/settings/navsort"
   ],
@@ -43,6 +44,11 @@
     "*.163.com",
     "*.sohu.com",
     "*.sina.com.cn",
-    "*.36kr.com"
+    "*.36kr.com",
+    "*.bilibili.com",
+    "*.douyin.com",
+    "*.hupu.com",
+    "*.douban.com",
+    "*.tencentscf.com"
   ]
 } 

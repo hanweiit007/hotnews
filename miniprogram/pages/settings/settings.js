@@ -10,7 +10,8 @@ Page({
       showTime: true,
       showHot: true,
       theme: 'light',
-      refreshInterval: 5
+      refreshInterval: 5,
+      displayMode: 'rich-text' // 新增：内容显示模式
     },
     refreshIntervalOptions: [5, 10, 15, 30, 60],
     itemsPerSiteOptions: [5, 10, 15, 20, 30],
@@ -20,7 +21,16 @@ Page({
     siteItemsPerSite: 10,
     autoRefresh: true,
     darkMode: false,
-    version: '1.0.0'
+    version: '1.0.0',
+    // 新增：显示模式选项
+    displayModeOptions: [
+      { value: 'rich-text', label: '富文本模式', desc: '纯文本内容，加载快速，稳定性好' },
+      { value: 'proxy-webview', label: '代理网页模式', desc: '通过代理服务器获取完整网页内容' },
+      { value: 'direct-webview', label: '直接网页模式', desc: '原生网页访问（仅开发环境）' }
+    ],
+    displayModeIndex: 0, // 新增：当前选择的显示模式索引
+    currentDisplayModeLabel: '富文本模式', // 新增：当前显示模式标签
+    currentDisplayModeDesc: '纯文本内容，加载快速，稳定性好' // 新增：当前显示模式描述
   },
 
   onLoad: function() {
@@ -35,8 +45,13 @@ Page({
       showTime: globalSettings.showTime !== false,
       showHot: globalSettings.showHot !== false,
       theme: globalSettings.theme || 'light',
-      refreshInterval: globalSettings.refreshInterval || 5
+      refreshInterval: globalSettings.refreshInterval || 5,
+      displayMode: globalSettings.displayMode || 'rich-text' // 新增：显示模式
     };
+    
+    // 计算显示模式相关数据
+    that.updateDisplayModeData(settings.displayMode);
+    
     that.setData({ 
       settings: settings,
       tempItemsPerSite: settings.itemsPerSite,
@@ -47,10 +62,32 @@ Page({
     });
   },
 
+  // 新增：更新显示模式相关数据
+  updateDisplayModeData: function(displayMode) {
+    var that = this;
+    var options = that.data.displayModeOptions;
+    var index = options.findIndex(function(item) {
+      return item.value === displayMode;
+    });
+    
+    if (index === -1) index = 0; // 默认第一个选项
+    
+    that.setData({
+      displayModeIndex: index,
+      currentDisplayModeLabel: options[index].label,
+      currentDisplayModeDesc: options[index].desc
+    });
+  },
+
   onShow: function() {
     // 每次显示页面时重新加载设置
     var that = this;
     var globalSettings = app.globalData.settings || {};
+    
+    // 更新显示模式相关数据
+    var displayMode = globalSettings.displayMode || 'rich-text';
+    that.updateDisplayModeData(displayMode);
+    
     that.setData({
       'settings.itemsPerSite': globalSettings.itemsPerSite || 50,
       'settings.pinnedSites': globalSettings.pinnedSites || [],
@@ -60,6 +97,7 @@ Page({
       'settings.showHot': globalSettings.showHot !== false,
       'settings.theme': globalSettings.theme || 'light',
       'settings.refreshInterval': globalSettings.refreshInterval || 5,
+      'settings.displayMode': displayMode,
       tempItemsPerSite: globalSettings.itemsPerSite || 50,
       recommendedItemsPerSite: globalSettings.recommendedItemsPerSite || 3,
       siteItemsPerSite: globalSettings.siteItemsPerSite || 10,
@@ -258,10 +296,18 @@ Page({
 
   // 处理自动刷新开关变化
   handleAutoRefreshChange: function(e) {
+    const autoRefresh = e.detail.value;
     this.setData({
-      autoRefresh: e.detail.value
-    })
-    this.saveSettings()
+      autoRefresh: autoRefresh
+    });
+    this.saveSettings();
+    
+    // 控制自动刷新定时器
+    if (autoRefresh) {
+      app.startAutoRefresh();
+    } else {
+      app.stopAutoRefresh();
+    }
   },
 
   // 处理深色模式开关变化
@@ -270,5 +316,32 @@ Page({
       darkMode: e.detail.value
     })
     this.saveSettings()
+  },
+
+  // 新增：处理显示模式变化
+  onDisplayModeChange: function(e) {
+    var that = this;
+    var index = parseInt(e.detail.value);
+    var selectedOption = that.data.displayModeOptions[index];
+    var settings = that.data.settings;
+    
+    settings.displayMode = selectedOption.value;
+    
+    // 更新显示模式相关数据
+    that.setData({
+      settings: settings,
+      displayModeIndex: index,
+      currentDisplayModeLabel: selectedOption.label,
+      currentDisplayModeDesc: selectedOption.desc
+    });
+    
+    that.saveSettings();
+    
+    // 显示选择的模式信息
+    wx.showToast({
+      title: selectedOption.label,
+      icon: 'none',
+      duration: 2000
+    });
   }
-}); 
+});
