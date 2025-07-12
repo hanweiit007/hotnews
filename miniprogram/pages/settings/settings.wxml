@@ -42,6 +42,31 @@
   <view class="settings-group">
     <view class="group-title">其他设置</view>
     
+    <!-- 新增：内容显示模式设置 -->
+    <view class="setting-item">
+      <view class="setting-label">
+        <text class="label-text">内容显示模式</text>
+        <text class="label-desc">选择文章内容的显示方式</text>
+      </view>
+      <view class="setting-control">
+        <picker 
+          bindchange="onDisplayModeChange" 
+          value="{{displayModeIndex}}" 
+          range="{{displayModeOptions}}"
+          range-key="label"
+        >
+          <view class="picker">
+            {{currentDisplayModeLabel}}
+          </view>
+        </picker>
+      </view>
+    </view>
+
+    <!-- 显示模式说明 -->
+    <view class="mode-description">
+      <text class="mode-desc-text">{{currentDisplayModeDesc}}</text>
+    </view>
+    
     <!-- 自动刷新设置 -->
     <view class="setting-item">
       <view class="setting-label">

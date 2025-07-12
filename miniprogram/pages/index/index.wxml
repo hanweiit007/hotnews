@@ -24,9 +24,6 @@
         </view>
       </view>
     </scroll-view>
-    <view class="nav-edit" bindtap="openNavSort">
-      <text class="edit-icon">⋮</text>
-    </view>
   </view>
 
   <!-- 顶部刷新提示 -->
@@ -64,17 +61,18 @@
   <view class="hot-items">
     <block wx:if="{{selectedSite}}">
       <block wx:if="{{selectedSite.id === 'recommended'}}">
+        <!-- 恢复推荐列表的完整结构 -->
         <view class="recommended-list">
           <view wx:for="{{sites}}" wx:key="id" wx:for-item="site"
-                wx:if="{{site.id !== 'recommended' && groupedHotItems[site.id] && groupedHotItems[site.id].length > 0}}">
+                wx:if="{{site.id !== 'recommended'}}">
             <view class="site-section">
               <view class="site-header" bindtap="toggleSiteCollapse" data-site-id="{{site.id}}" style="display: flex; align-items: center; justify-content: space-between;">
                 <view style="display: flex; align-items: center;">
                   <text class="site-title">{{site.name}}</text>
-                  <text class="collapse-icon abcde {{collapsedSites[site.id] ? 'collapsed' : ''}} {{collapsedSites[site.id]}}">▼</text>
+                  <text class="collapse-icon {{collapsedSites[site.id] ? 'collapsed' : ''}}">▼</text>
                 </view>
-                <!-- 只在第一个 site-section 渲染全部展开/折叠按钮，右侧显示 -->
-                <view wx:if="{{index === 1}}" class="collapse-controls-inline" style="margin-left: auto;">
+                <!-- 只在知乎站点渲染全部展开/折叠按钮 -->
+                <view wx:if="{{site.id === 'zhihu'}}" class="collapse-controls-inline" style="margin-left: auto;">
                   <view class="collapse-btn" catchtap="onAllSitesBtnTap">
                     <text class="collapse-icon {{isAllCollapsed ? 'collapsed' : ''}}">▼</text>
                     <text>{{isAllCollapsed ? '全部展开' : '全部折叠'}}</text>
@@ -82,12 +80,12 @@
                 </view>
               </view>
               <view class="items-list {{collapsedSites[site.id] ? 'collapsed' : ''}}">
-                <view class="hot-item" 
-                      wx:for="{{groupedHotItems[site.id]}}" 
+                <view class="hot-item"
+                      wx:for="{{groupedHotItems[site.id]}}"
                       wx:key="id"
                       wx:if="{{index < recommendedItemsPerSite}}"
                       data-item="{{item}}"
-                      bindtap="handleItemClick">
+                      bindtap="onItemClick">
                   <view class="item-rank {{item.rank <= 3 ? 'top-' + item.rank : ''}}">{{item.rank}}</view>
                   <view class="item-content">
                     <view class="item-title">{{item.title}}</view>
@@ -96,6 +94,9 @@
                       <text class="item-time">{{formatTime(item.publishTime)}}</text>
                     </view>
                   </view>
+                </view>
+                <view class="no-data" wx:if="{{!groupedHotItems[site.id] || groupedHotItems[site.id].length === 0}}">
+                  <text>暂无{{site.name}}热点数据</text>
                 </view>
               </view>
             </view>
@@ -112,7 +113,7 @@
                 wx:key="id"
                 wx:if="{{index < siteItemsPerSite}}"
                 data-item="{{item}}"
-                bindtap="handleItemClick">
+                bindtap="onItemClick">
             <view class="item-rank {{item.rank <= 3 ? 'top-' + item.rank : ''}}">{{item.rank}}</view>
             <view class="item-content">
               <view class="item-title">{{item.title}}</view>
@@ -129,4 +130,4 @@
       <text>请选择一个站点查看热搜</text>
     </view>
   </view>
-</view> 
+</view>

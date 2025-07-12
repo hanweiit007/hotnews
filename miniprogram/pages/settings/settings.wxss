@@ -162,6 +162,20 @@
   margin-top: 20rpx;
 }
 
+/* 模式描述样式 */
+.mode-description {
+  padding: 15rpx 20rpx;
+  background: #f0f7ff;
+  border-left: 4rpx solid #1890ff;
+  margin-bottom: 20rpx;
+}
+
+.mode-desc-text {
+  font-size: 24rpx;
+  color: #1890ff;
+  line-height: 1.4;
+}
+
 /* 其他设置项样式 */
 .picker {
   font-size: 28rpx;
@@ -243,6 +257,15 @@
 
 .dark-theme .number-value {
   color: #3498db;
+}
+
+.dark-theme .mode-description {
+  background: #1a2332;
+  border-left-color: #1890ff;
+}
+
+.dark-theme .mode-desc-text {
+  color: #4dabf7;
 }
 
 .number-picker {

@@ -73,30 +73,6 @@
   border-radius: 2rpx;
 }
 
-.nav-edit {
-  width: 88rpx;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.nav-edit::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 20%;
-  height: 60%;
-  width: 1rpx;
-  background: rgba(0,0,0,0.05);
-}
-
-.edit-icon {
-  font-size: 40rpx;
-  color: #666;
-}
-
 .nav-sort-btn {
   width: 64rpx;
   height: 100%;
@@ -418,34 +394,6 @@
 
   .nav-item.active .nav-text {
     color: #fff;
-  }
-
-  .nav-edit::before {
-    background: rgba(255,255,255,0.1);
-  }
-
-  .edit-icon {
-    color: #999;
-  }
-
-  .edit-content {
-    background: #1c1c1e;
-  }
-
-  .edit-title {
-    color: #fff;
-  }
-
-  .edit-item {
-    background: #2c2c2e;
-  }
-
-  .edit-item.pinned {
-    background: #2c1c1c;
-  }
-
-  .edit-item .edit-name {
-    color: #999;
   }
 
   .collapse-controls {
