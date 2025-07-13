@@ -81,7 +81,7 @@ App({
       wx.request({
         url: `${that.globalData.mcpBaseUrl}/api/article-content`,
         method: 'POST',
-        timeout: 15000, // 增加到15秒超时
+        timeout: 30000, // 增加到30秒超时，因为某些文章解析需要较长时间
         header: {
           'Content-Type': 'application/json'
         },
@@ -312,65 +312,108 @@ App({
   getAllHotItems: function(limit = 10) {
     const that = this;
     return new Promise(function(resolve, reject) {
-      const query = `limit=${limit}`;
-      // 获取所有站点的MCP ID
-      const siteIds = [
-        that.siteMcpIdMap.zhihu,    // 知乎
+      // 分批获取数据，知乎单独一批因为响应很慢
+      const zhihuBatch = [that.siteMcpIdMap.zhihu]; // 知乎单独处理
+      const batch1 = [
         that.siteMcpIdMap.weibo,    // 微博
         that.siteMcpIdMap.baidu,    // 百度
         that.siteMcpIdMap.bilibili, // B站
+      ];
+      const batch2 = [
         that.siteMcpIdMap.douyin,   // 抖音
         that.siteMcpIdMap.hupu,     // 虎扑
         that.siteMcpIdMap.douban,   // 豆瓣
+      ];
+      const batch3 = [
         that.siteMcpIdMap['36kr'],  // 36氪
         that.siteMcpIdMap.itnews    // IT新闻
       ];
       
-      // 调用本地MCP服务器获取热点数据
+      console.log('分批请求数据，知乎单独批次:', zhihuBatch, 'batch1:', batch1, 'batch2:', batch2, 'batch3:', batch3);
+      
+      // 并行请求所有批次
+      Promise.all([
+        that.getBatchHotItems(zhihuBatch, limit, 30000), // 知乎给30秒超时
+        that.getBatchHotItems(batch1, limit),
+        that.getBatchHotItems(batch2, limit),
+        that.getBatchHotItems(batch3, limit)
+      ]).then(results => {
+        // 合并结果
+        const allData = [];
+        results.forEach(batchData => {
+          if (Array.isArray(batchData)) {
+            allData.push(...batchData);
+          }
+        });
+        
+        console.log('合并后的数据:', allData.length, '个数据源');
+        
+        // 适配数据结构
+        const siteKeys = [
+          'zhihu', 'weibo', 'baidu', 'bilibili', 'douyin', 'hupu', 'douban', '36kr', 'itnews'
+        ];
+        const sites = allData.map((item, idx) => ({
+          id: siteKeys[idx],
+          name: item.name,
+          mcpId: item.mcpId || idx + 1
+        }));
+        const hotItemsBySite = {};
+        allData.forEach((item, idx) => {
+          const siteId = siteKeys[idx];
+          hotItemsBySite[siteId] = item.data || [];
+        });
+
+        // 生成推荐数据
+        const recommendedItems = that.generateRecommendedItems(hotItemsBySite);
+        hotItemsBySite.recommended = recommendedItems;
+        
+        resolve({
+          sites,
+          hotItemsBySite,
+          lastUpdated: new Date().toISOString()
+        });
+        
+      }).catch(error => {
+        console.error('分批请求失败:', error);
+        reject(error);
+      });
+    });
+  },
+
+  // 新增：获取批次数据
+  getBatchHotItems: function(siteIds, limit = 10, timeout = 15000) {
+    const that = this;
+    return new Promise(function(resolve, reject) {
+      console.log('请求批次数据:', siteIds, '超时时间:', timeout + 'ms');
+      
       wx.request({
         url: `${that.globalData.mcpBaseUrl}/api/hotnews`,
         method: 'POST',
-        timeout: 10000, // 添加10秒超时
+        timeout: timeout, // 使用传入的超时时间
         header: {
           'Content-Type': 'application/json'
         },
         data: {
           sources: siteIds,
-          limit: limit || 50 // 使用传入的限制参数
+          limit: limit || 50
         },
         success: function(res) {
+          console.log('批次数据响应:', {
+            sources: siteIds,
+            statusCode: res.statusCode,
+            dataLength: res.data ? res.data.length : 0
+          });
+          
           if (res.statusCode === 200 && Array.isArray(res.data)) {
-            // 适配数据结构
-            const siteKeys = [
-              'zhihu', 'weibo', 'baidu', 'bilibili', 'douyin', 'hupu', 'douban', '36kr', 'itnews'
-            ];
-            const sites = res.data.map((item, idx) => ({
-              id: siteKeys[idx],
-              name: item.name,
-              mcpId: siteIds[idx]
-            }));
-            const hotItemsBySite = {};
-            res.data.forEach((item, idx) => {
-              const siteId = siteKeys[idx];
-              hotItemsBySite[siteId] = item.data || [];
-            });
-
-            // 生成推荐数据
-            const recommendedItems = that.generateRecommendedItems(hotItemsBySite);
-            hotItemsBySite.recommended = recommendedItems;
-            
-            resolve({
-              sites,
-              hotItemsBySite,
-              lastUpdated: new Date().toISOString()
-            });
+            resolve(res.data);
           } else {
-            reject(new Error('获取热点数据失败'));
+            console.error('批次数据异常:', res.statusCode, res.data);
+            resolve([]); // 返回空数组而不是失败，允许其他批次继续
           }
         },
         fail: function(error) {
-          console.error('调用MCP服务器失败:', error);
-          reject(error);
+          console.error('批次请求失败:', error, '数据源:', siteIds);
+          resolve([]); // 返回空数组而不是失败，允许其他批次继续
         }
       });
     });
@@ -448,7 +491,7 @@ App({
       wx.request({
         url: `${that.globalData.mcpBaseUrl}/api/hotnews`,
         method: 'POST',
-        timeout: 10000, // 添加10秒超时
+        timeout: 20000, // 增加到20秒超时，获取多个数据源需要较长时间
         header: {
           'Content-Type': 'application/json'
         },

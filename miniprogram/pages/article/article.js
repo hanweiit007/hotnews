@@ -226,7 +226,7 @@ Page({
     wx.request({
       url: url,
       method: 'GET',
-      timeout: 15000,
+      timeout: 30000, // 增加到30秒，因为代理请求需要更长时间
       success: function(res) {
         console.log('代理内容加载成功，状态码:', res.statusCode);
         console.log('内容长度:', res.data.length);
