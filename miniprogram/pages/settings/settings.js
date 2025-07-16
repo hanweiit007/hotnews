@@ -1,4 +1,5 @@
 var app = getApp();
+const envConfig = require('../../config/environment');
 
 Page({
   data: {
@@ -22,19 +23,62 @@ Page({
     autoRefresh: true,
     darkMode: false,
     version: '1.0.0',
-    // 新增：显示模式选项
-    displayModeOptions: [
-      { value: 'rich-text', label: '富文本模式', desc: '纯文本内容，加载快速，稳定性好' },
-      { value: 'proxy-webview', label: '代理网页模式', desc: '通过代理服务器获取完整网页内容' },
-      { value: 'direct-webview', label: '直接网页模式', desc: '原生网页访问（仅开发环境）' }
-    ],
+    // 显示模式选项（动态生成）
+    displayModeOptions: [],
+    currentEnv: '',
+    isAuditVersion: false,
     displayModeIndex: 0, // 新增：当前选择的显示模式索引
     currentDisplayModeLabel: '富文本模式', // 新增：当前显示模式标签
     currentDisplayModeDesc: '纯文本内容，加载快速，稳定性好' // 新增：当前显示模式描述
   },
 
   onLoad: function() {
+    console.log('Settings onLoad');
     var that = this;
+    
+    // 获取环境信息
+    const currentEnv = envConfig.getCurrentEnv();
+    const isAuditVersion = envConfig.isAuditVersion();
+    
+    // 根据环境配置显示模式选项
+    let displayModeOptions = [
+      { 
+        value: 'rich-text', 
+        label: '📝 富文本模式', 
+        desc: '纯文本内容，加载快速，稳定性好',
+        available: true
+      }
+    ];
+    
+    // 只有非审核版本才显示代理功能
+    if (!isAuditVersion && envConfig.isFeatureEnabled('proxyWebview')) {
+      displayModeOptions.push({
+        value: 'proxy-webview', 
+        label: '🌐 代理网页模式', 
+        desc: '通过代理服务器获取完整网页内容',
+        available: true
+      });
+    }
+    
+    // 只有开发环境才显示直接webview
+    if (envConfig.isDevelopmentVersion() && envConfig.isFeatureEnabled('directWebview')) {
+      displayModeOptions.push({
+        value: 'direct-webview', 
+        label: '🔗 直接网页模式', 
+        desc: '原生网页访问（仅开发环境）',
+        available: true
+      });
+    }
+    
+    that.setData({
+      displayModeOptions: displayModeOptions,
+      currentEnv: currentEnv,
+      isAuditVersion: isAuditVersion
+    });
+    
+    console.log('当前环境:', currentEnv);
+    console.log('可用显示模式:', displayModeOptions);
+    
     // 从全局数据加载设置
     var globalSettings = app.globalData.settings || {};
     var settings = {
@@ -342,6 +386,45 @@ Page({
       title: selectedOption.label,
       icon: 'none',
       duration: 2000
+    });
+  },
+
+  // 新增：查看免责声明
+  showDisclaimer: function() {
+    wx.navigateTo({
+      url: '/pages/disclaimer/disclaimer'
+    });
+  },
+
+  // 新增：查看环境信息
+  showEnvironmentInfo: function() {
+    const envConfig = require('../../config/environment');
+    const currentEnv = envConfig.getCurrentEnv();
+    const config = envConfig.getCurrentConfig();
+    
+    let envName = '';
+    let envDesc = '';
+    
+    switch(currentEnv) {
+      case 'development':
+        envName = '开发环境';
+        envDesc = '完整功能，本地调试';
+        break;
+      case 'audit':
+        envName = '审核版本';
+        envDesc = '功能受限，仅富文本模式';
+        break;
+      case 'production':
+        envName = '生产版本';
+        envDesc = '完整功能，线上服务';
+        break;
+    }
+    
+    wx.showModal({
+      title: '环境信息',
+      content: `当前环境：${envName}\n\n功能描述：${envDesc}\n\n服务器：${config.mcpBaseUrl}`,
+      showCancel: false,
+      confirmText: '知道了'
     });
   }
 });

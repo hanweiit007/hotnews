@@ -17,64 +17,64 @@ module.exports = {
   sites: [
     {
       id: 'zhihu',
-      name: '知乎',
-      icon: '知',
+      name: '知乎热榜',
+      icon: '💡',
       url: 'https://www.zhihu.com/hot',
       weight: 1.2
     },
     {
       id: 'weibo',
-      name: '微博',
-      icon: '微',
+      name: '微博热搜',
+      icon: '📢',
       url: 'https://s.weibo.com/top/summary',
       weight: 1.1
     },
     {
       id: 'baidu',
-      name: '百度',
-      icon: '百',
+      name: '百度热点',
+      icon: '🔍',
       url: 'https://top.baidu.com/board?tab=realtime',
       weight: 1.0
     },
     {
       id: 'bilibili',
-      name: 'B站',
-      icon: 'B',
+      name: 'B站热榜',
+      icon: '📹',
       url: 'https://www.bilibili.com/v/popular/rank/all',
       weight: 0.9
     },
     {
       id: 'douyin',
-      name: '抖音',
-      icon: '抖',
+      name: '抖音热点',
+      icon: '🎵',
       url: 'https://www.douyin.com/hot',
       weight: 0.8
     },
     {
       id: 'hupu',
-      name: '虎扑',
-      icon: '虎',
+      name: '虎扑热榜',
+      icon: '🏀',
       url: 'https://bbs.hupu.com/all-gambia',
       weight: 0.7
     },
     {
       id: 'douban',
-      name: '豆瓣',
-      icon: '豆',
+      name: '豆瓣热榜',
+      icon: '📚',
       url: 'https://www.douban.com/group/explore',
       weight: 0.6
     },
     {
       id: '36kr',
-      name: '36氪',
-      icon: '氪',
+      name: '36氪热榜',
+      icon: '💼',
       url: 'https://36kr.com/information/technology',
       weight: 0.8
     },
     {
       id: 'itnews',
       name: 'IT新闻',
-      icon: 'IT',
+      icon: '💻',
       url: 'https://www.ithome.com/',
       weight: 0.7
     }

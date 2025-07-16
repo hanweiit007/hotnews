@@ -1,27 +1,94 @@
-<view class="navsort-container{{isEdit ? ' editing' : ''}}">
-  <view class="navsort-header-row">
-    <text class="navsort-section-title">我的站点</text>
-    <text class="navsort-simple-btn" bindtap="toggleEdit">{{isEdit ? '完成' : '排序'}}</text>
-  </view>
-  <view class="navsort-section">
-    <view class="navsort-list">
-      <block wx:for="{{mySites}}" wx:key="id" wx:for-item="item">
-        <view class="navsort-item{{isEdit ? ' shake' : ''}}">
-          <text>{{item.name}}</text>
-          <text wx:if="{{isEdit}}" class="navsort-remove" data-id="{{item.id}}" bindtap="removeFromMySites">×</text>
-        </view>
-      </block>
+<view class="navsort-container">
+  <!-- 页面头部 -->
+  <view class="page-header">
+    <view class="header-content">
+      <text class="page-title">🔥 站点排序</text>
+      <text class="page-subtitle">管理你的热点源优先级</text>
+    </view>
+    <view class="edit-actions">
+      <button class="edit-btn {{isEdit ? 'active' : ''}}" bindtap="toggleEdit">
+        {{isEdit ? '完成' : '排序'}}
+      </button>
     </view>
   </view>
-  <view class="navsort-section">
-    <text class="navsort-section-title">全部站点</text>
-    <view class="navsort-list">
-      <block wx:for="{{allSites}}" wx:key="id" wx:for-item="item">
-        <view class="navsort-item">
-          <text>{{item.name}}</text>
-          <text wx:if="{{isEdit}}" class="navsort-add" data-id="{{item.id}}" bindtap="addToMySites">+</text>
+
+  <!-- 我的站点 -->
+  <view class="section">
+    <view class="section-header">
+      <view class="section-title">
+        <text class="title-icon">⭐</text>
+        <text class="title-text">我的站点</text>
+        <text class="title-count">({{mySites.length}})</text>
+      </view>
+      <text class="section-desc">{{isEdit ? '点击 × 移除站点' : '按优先级顺序显示'}}</text>
+    </view>
+    
+    <view class="sites-grid">
+      <view class="site-card {{isEdit ? 'editing' : ''}}" 
+            wx:for="{{mySites}}" 
+            wx:key="id" 
+            wx:for-item="item"
+            data-id="{{item.id}}">
+        <view class="card-content">
+          <text class="site-icon">{{item.icon}}</text>
+          <text class="site-name">{{item.name}}</text>
+          <view class="site-badge">优先级 {{index + 1}}</view>
         </view>
-      </block>
+        <view wx:if="{{isEdit}}" class="remove-btn" data-id="{{item.id}}" bindtap="removeFromMySites">
+          <text class="remove-icon">×</text>
+        </view>
+      </view>
+      
+      <!-- 空状态 -->
+      <view wx:if="{{mySites.length === 0}}" class="empty-state">
+        <text class="empty-icon">📭</text>
+        <text class="empty-text">暂无站点</text>
+        <text class="empty-desc">从下方添加你感兴趣的站点</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 全部站点 -->
+  <view class="section" wx:if="{{allSites.length > 0}}">
+    <view class="section-header">
+      <view class="section-title">
+        <text class="title-icon">🌐</text>
+        <text class="title-text">全部站点</text>
+        <text class="title-count">({{allSites.length}})</text>
+      </view>
+      <text class="section-desc">{{isEdit ? '点击 + 添加到我的站点' : '可添加的站点'}}</text>
+    </view>
+    
+    <view class="sites-grid">
+      <view class="site-card available {{isEdit ? 'editing' : ''}}" 
+            wx:for="{{allSites}}" 
+            wx:key="id" 
+            wx:for-item="item"
+            data-id="{{item.id}}">
+        <view class="card-content">
+          <text class="site-icon">{{item.icon}}</text>
+          <text class="site-name">{{item.name}}</text>
+          <view class="site-badge available">可添加</view>
+        </view>
+        <view wx:if="{{isEdit}}" class="add-btn" data-id="{{item.id}}" bindtap="addToMySites">
+          <text class="add-icon">+</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作提示 -->
+  <view class="tips-section" wx:if="{{isEdit}}">
+    <view class="tips-card">
+      <view class="tips-header">
+        <text class="tips-icon">💡</text>
+        <text class="tips-title">操作提示</text>
+      </view>
+      <view class="tips-content">
+        <text class="tip-item">• 点击排序按钮开始管理站点</text>
+        <text class="tip-item">• 优先级高的站点会在首页优先显示</text>
+        <text class="tip-item">• 至少保留一个站点，否则无法保存</text>
+      </view>
     </view>
   </view>
 </view>

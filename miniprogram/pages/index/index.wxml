@@ -3,7 +3,11 @@
   <!-- 导航栏 -->
   <view class="nav-bar">
     <view class="nav-sort-btn" bindtap="openNavSort">
-      <text class="sort-icon">≡</text>
+      <view class="sort-icon-container">
+        <view class="sort-line"></view>
+        <view class="sort-line"></view>
+        <view class="sort-line"></view>
+      </view>
     </view>
     <!-- 推荐Tab固定 -->
     <view class="nav-item {{selectedSite && selectedSite.id === 'recommended' ? 'active' : ''}}"
@@ -12,7 +16,7 @@
       <text class="nav-text">推荐</text>
     </view>
     <!-- 其它Tab可横向滚动 -->
-    <scroll-view class="nav-scroll" scroll-x enable-flex scroll-with-animation scroll-left="{{scrollLeft}}">
+    <scroll-view class="nav-scroll" scroll-x enable-flex scroll-with-animation scroll-left="{{scrollLeft}}" show-scrollbar="{{false}}">
       <view class="nav-items">
         <view class="nav-item {{selectedSite && selectedSite.id === site.id ? 'active' : ''}}"
               wx:for="{{otherSites}}" 
@@ -26,12 +30,9 @@
     </scroll-view>
   </view>
 
-  <!-- 顶部刷新提示 -->
-  <view class="refresh-bar" wx:if="{{lastUpdated}}">
-    <text class="refresh-text">最后更新: {{formatTime(lastUpdated)}}</text>
-    <view class="refresh-btn" bindtap="refreshData" wx:if="{{!isLoading}}">
-      <text>刷新</text>
-    </view>
+  <!-- 顶部更新时间 -->
+  <view class="update-bar" wx:if="{{lastUpdated}}">
+    <text class="update-text">最后更新: {{lastUpdatedFormatted}}</text>
   </view>
 
   <!-- 加载中提示 -->
@@ -40,94 +41,84 @@
     <text>加载中...</text>
   </view>
 
-  <!-- 站点网格 -->
-  <view class="sites-grid">
-    <view class="site-card {{selectedSite && selectedSite.id === site.id ? 'selected' : ''}}"
-          wx:for="{{sites}}" 
-          wx:key="id"
-          wx:for-item="site"
-          wx:if="site.id !== 'recommended'"
-          data-site="{{site}}"
-          bindtap="handleSiteSelect">
-      <view class="site-icon">{{site.icon}}</view>
-      <view class="site-name">{{site.name}}</view>
-      <view class="site-count" wx:if="{{groupedHotItems[site.id]}}">
-        {{groupedHotItems[site.id].length}}条
+  <!-- 推荐内容 -->
+  <view class="recommended-section" wx:if="{{selectedSite && selectedSite.id === 'recommended' && !isLoading}}">
+    <view class="section-header">
+      <text class="section-title">🔥 推荐热点</text>
+      <view class="collapse-btn" bindtap="toggleAllCollapse">
+        <text>{{isAllCollapsed ? '展开' : '收起'}}</text>
+      </view>
+    </view>
+    
+    <view class="recommended-sites">
+      <view class="site-section {{collapsedSites[site.id] ? 'collapsed' : ''}}" 
+            wx:for="{{sites}}" 
+            wx:key="id"
+            wx:for-item="site"
+            wx:if="{{site.id !== 'recommended'}}">
+        <view class="site-header" bindtap="toggleSiteCollapse" data-site-id="{{site.id}}">
+          <view class="site-info">
+            <text class="site-icon">{{site.icon}}</text>
+            <text class="site-name">{{site.name}}</text>
+          </view>
+          <view class="collapse-icon {{collapsedSites[site.id] ? 'collapsed' : ''}}">
+            <text>▼</text>
+          </view>
+        </view>
+        <view class="site-content">
+          <view class="hot-item" 
+                wx:for="{{groupedHotItems[site.id]}}" 
+                wx:key="index"
+                wx:for-item="item"
+                wx:for-index="idx"
+                wx:if="{{idx < recommendedItemsPerSite}}"
+                data-item="{{item}}"
+                bindtap="handleItemClick">
+            <view class="item-rank">{{item.rank}}</view>
+            <view class="item-content">
+              <text class="item-title">{{item.title}}</text>
+              <text class="item-hot" wx:if="{{item.hot}}">{{item.hot}}</text>
+            </view>
+          </view>
+        </view>
       </view>
     </view>
   </view>
 
-  <!-- 热点列表 -->
-  <view class="hot-items">
-    <block wx:if="{{selectedSite}}">
-      <block wx:if="{{selectedSite.id === 'recommended'}}">
-        <!-- 恢复推荐列表的完整结构 -->
-        <view class="recommended-list">
-          <view wx:for="{{sites}}" wx:key="id" wx:for-item="site"
-                wx:if="{{site.id !== 'recommended'}}">
-            <view class="site-section">
-              <view class="site-header" bindtap="toggleSiteCollapse" data-site-id="{{site.id}}" style="display: flex; align-items: center; justify-content: space-between;">
-                <view style="display: flex; align-items: center;">
-                  <text class="site-title">{{site.name}}</text>
-                  <text class="collapse-icon {{collapsedSites[site.id] ? 'collapsed' : ''}}">▼</text>
-                </view>
-                <!-- 只在知乎站点渲染全部展开/折叠按钮 -->
-                <view wx:if="{{site.id === 'zhihu'}}" class="collapse-controls-inline" style="margin-left: auto;">
-                  <view class="collapse-btn" catchtap="onAllSitesBtnTap">
-                    <text class="collapse-icon {{isAllCollapsed ? 'collapsed' : ''}}">▼</text>
-                    <text>{{isAllCollapsed ? '全部展开' : '全部折叠'}}</text>
-                  </view>
-                </view>
-              </view>
-              <view class="items-list {{collapsedSites[site.id] ? 'collapsed' : ''}}">
-                <view class="hot-item"
-                      wx:for="{{groupedHotItems[site.id]}}"
-                      wx:key="id"
-                      wx:if="{{index < recommendedItemsPerSite}}"
-                      data-item="{{item}}"
-                      bindtap="onItemClick">
-                  <view class="item-rank {{item.rank <= 3 ? 'top-' + item.rank : ''}}">{{item.rank}}</view>
-                  <view class="item-content">
-                    <view class="item-title">{{item.title}}</view>
-                    <view class="item-info">
-                      <text class="item-hot" wx:if="{{item.hot}}">{{item.hot}}</text>
-                      <text class="item-time">{{formatTime(item.publishTime)}}</text>
-                    </view>
-                  </view>
-                </view>
-                <view class="no-data" wx:if="{{!groupedHotItems[site.id] || groupedHotItems[site.id].length === 0}}">
-                  <text>暂无{{site.name}}热点数据</text>
-                </view>
-              </view>
-            </view>
+  <!-- 单个站点内容 -->
+  <view class="site-content-section" wx:if="{{selectedSite && selectedSite.id !== 'recommended' && !isLoading}}">
+    <view class="site-header-large">
+      <text class="site-icon-large">{{selectedSite.icon}}</text>
+      <text class="site-name-large">{{selectedSite.name}}</text>
+    </view>
+    
+    <view class="hot-items-list">
+      <view class="hot-item-card" 
+            wx:for="{{groupedHotItems[selectedSite.id]}}" 
+            wx:key="index"
+            wx:for-item="item"
+            wx:for-index="idx"
+            wx:if="{{idx < siteItemsPerSite}}"
+            data-item="{{item}}"
+            bindtap="handleItemClick">
+        <view class="item-rank-large">{{item.rank}}</view>
+        <view class="item-content-large">
+          <text class="item-title-large">{{item.title}}</text>
+          <view class="item-meta">
+            <text class="item-hot-large" wx:if="{{item.hot}}">🔥 {{item.hot}}</text>
+            <text class="item-time" wx:if="{{item.time}}">{{item.time}}</text>
           </view>
         </view>
-      </block>
-      <block wx:else>
-        <view class="site-header">
-          <text class="site-title">{{selectedSite.name}}</text>
-        </view>
-        <view class="items-list">
-          <view class="hot-item" 
-                wx:for="{{groupedHotItems[selectedSite.id]}}" 
-                wx:key="id"
-                wx:if="{{index < siteItemsPerSite}}"
-                data-item="{{item}}"
-                bindtap="onItemClick">
-            <view class="item-rank {{item.rank <= 3 ? 'top-' + item.rank : ''}}">{{item.rank}}</view>
-            <view class="item-content">
-              <view class="item-title">{{item.title}}</view>
-              <view class="item-info">
-                <text class="item-hot" wx:if="{{item.hot}}">{{item.hot}}</text>
-                <text class="item-time">{{formatTime(item.publishTime)}}</text>
-              </view>
-            </view>
-          </view>
-        </view>
-      </block>
-    </block>
-    <view class="no-data" wx:else>
-      <text>请选择一个站点查看热搜</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 无数据提示 -->
+  <view class="no-data" wx:if="{{!isLoading && (!sites || sites.length === 0)}}">
+    <view class="no-data-icon">📭</view>
+    <text class="no-data-text">暂无数据</text>
+    <view class="retry-btn" bindtap="loadData">
+      <text>重试</text>
     </view>
   </view>
 </view>

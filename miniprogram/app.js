@@ -1,4 +1,9 @@
 const siteConfig = require('./config/siteConfig');
+const envConfig = require('./config/environment');
+const errorHandlerModule = require('./utils/errorHandler');
+const errorHandler = errorHandlerModule.errorHandler;
+const ERROR_TYPES = errorHandlerModule.ERROR_TYPES;
+const ERROR_LEVELS = errorHandlerModule.ERROR_LEVELS;
 
 App({
   globalData: {
@@ -6,20 +11,98 @@ App({
     allHotItems: [],
     isLoading: false,
     lastUpdated: null,
-    // mcpBaseUrl: 'http://localhost:9000', // 本地开发环境地址
-    // mcpBaseUrl: 'http://49.232.145.233:3001', // pm2部署地址
-    mcpBaseUrl: 'https://1367911501-h3462r582a.ap-beijing.tencentscf.com', // 腾讯云函数
+    // 动态获取环境配置
+    mcpBaseUrl: envConfig.getCurrentConfig().mcpBaseUrl,
+    envConfig: envConfig.getCurrentConfig(), // 添加环境配置到全局数据
     settings: {
       itemsPerSite: 50,
       pinnedSites: [],
-      siteOrder: []
+      siteOrder: [],
+      // 根据环境设置默认显示模式
+      displayMode: envConfig.isAuditVersion() ? 'rich-text' : 'rich-text'
     },
     userInfo: null,
     StatusBar: null,
     Custom: null,
     CustomBar: null,
     retryCount: 0, // 添加重试计数
-    maxRetries: 3  // 最大重试次数
+    maxRetries: 3,  // 最大重试次数
+    errorHandler: errorHandler // 添加错误处理器到全局
+  },
+
+  onLaunch: function() {
+    console.log('App Launch');
+    
+    // 获取设备信息
+    try {
+      const systemInfo = wx.getSystemInfoSync();
+      this.globalData.StatusBar = systemInfo.statusBarHeight;
+      this.globalData.Custom = systemInfo.platform === 'ios' ? systemInfo.statusBarHeight + 50 : systemInfo.statusBarHeight + 48;
+      this.globalData.CustomBar = systemInfo.platform === 'ios' ? systemInfo.statusBarHeight + 88 : systemInfo.statusBarHeight + 68;
+      
+      console.log('系统信息:', systemInfo);
+    } catch (e) {
+      errorHandler.handleSystemError(e, 'App.onLaunch');
+    }
+    
+    // 加载本地设置
+    try {
+      this.loadSettings();
+    } catch (e) {
+      errorHandler.handleSystemError(e, 'App.loadSettings');
+    }
+    
+    // 获取当前环境信息
+    console.log('当前环境:', envConfig.getCurrentEnv());
+    console.log('是否审核版本:', envConfig.isAuditVersion());
+  },
+
+  onShow: function() {
+    console.log('App Show');
+  },
+
+  onHide: function() {
+    console.log('App Hide');
+  },
+
+  onError: function(msg) {
+    // 过滤掉微信小程序系统级错误，这些错误不影响应用功能
+    if (msg && typeof msg === 'string') {
+      if (msg.includes('wxfile://ad/interstitialAdExtInfo.txt') ||
+          msg.includes('wxfile://usr/miniprogramLog/log2') ||
+          msg.includes('no such file or directory')) {
+        // 静默处理系统级错误，不显示给用户
+        return;
+      }
+    }
+    
+    console.error('App Error:', msg);
+    errorHandler.handleError(msg, ERROR_TYPES.SYSTEM, ERROR_LEVELS.CRITICAL, {
+      source: 'App.onError'
+    });
+  },
+
+  onUnhandledRejection: function(res) {
+    console.error('Unhandled Promise Rejection:', res);
+    errorHandler.handleError(res.reason, ERROR_TYPES.SYSTEM, ERROR_LEVELS.ERROR, {
+      source: 'App.onUnhandledRejection',
+      promise: res.promise
+    });
+  },
+
+  onPageNotFound: function(res) {
+    console.error('Page Not Found:', res);
+    errorHandler.handleError('页面不存在', ERROR_TYPES.SYSTEM, ERROR_LEVELS.WARNING, {
+      source: 'App.onPageNotFound',
+      path: res.path,
+      query: res.query,
+      isEntryPage: res.isEntryPage
+    });
+    
+    // 页面不存在时的处理
+    wx.switchTab({
+      url: '/pages/index/index'
+    });
   },
 
   // 网站ID与MCP ID的映射关系
@@ -309,7 +392,8 @@ App({
   },
 
   // 获取所有热点数据
-  getAllHotItems: function(limit = 10) {
+  getAllHotItems: function(limit) {
+    limit = limit || 10;
     const that = this;
     return new Promise(function(resolve, reject) {
       const query = `limit=${limit}`;
@@ -326,6 +410,9 @@ App({
         that.siteMcpIdMap.itnews    // IT新闻
       ];
       
+      console.log('开始获取热点数据，MCP服务器地址:', that.globalData.mcpBaseUrl);
+      console.log('请求参数:', { sources: siteIds, limit: limit });
+      
       // 调用本地MCP服务器获取热点数据
       wx.request({
         url: `${that.globalData.mcpBaseUrl}/api/hotnews`,
@@ -339,6 +426,7 @@ App({
           limit: limit || 50 // 使用传入的限制参数
         },
         success: function(res) {
+          console.log('热点数据接口响应:', res);
           if (res.statusCode === 200 && Array.isArray(res.data)) {
             // 适配数据结构
             const siteKeys = [

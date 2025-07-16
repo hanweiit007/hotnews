@@ -4,12 +4,13 @@
     "pages/webview/webview",
     "pages/article/article",
     "pages/settings/settings",
-    "pages/settings/navsort"
+    "pages/settings/navsort",
+    "pages/disclaimer/disclaimer"
   ],
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#fff",
-    "navigationBarTitleText": "热点新闻",
+    "navigationBarTitleText": "热浪聚合",
     "navigationBarTextStyle": "black"
   },
   "tabBar": {

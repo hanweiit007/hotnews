@@ -1,3 +1,8 @@
 {
+  "navigationBarTitleText": "站点排序",
+  "navigationBarBackgroundColor": "#ff6b6b",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#f8f9fa",
+  "enablePullDownRefresh": false,
   "usingComponents": {}
 }

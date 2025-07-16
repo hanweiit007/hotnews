@@ -21,42 +21,18 @@
     </view>
   </view>
 
-  <!-- Webview模式 -->
-  <view wx:elif="{{showWebview}}" class="webview-container">
-    <!-- 显示模式标识 -->
-    <view class="mode-indicator">
-      <text class="mode-text">代理模式</text>
+  <!-- 富文本模式 -->
+  <view wx:elif="{{displayMode === 'rich-text'}}" class="rich-text-container">
+    <!-- 模式指示器 -->
+    <view wx:if="{{showModeIndicator}}" class="mode-indicator rich-text-mode">
+      <text class="mode-text">📝 富文本模式</text>
     </view>
     
-    <!-- 代理内容显示 -->
-    <view wx:if="{{showProxyContent}}" class="proxy-content-modal">
-      <view class="proxy-content-header">
-        <text>代理网页内容</text>
-        <button size="mini" bindtap="closeProxyContent">关闭</button>
-      </view>
-      <scroll-view scroll-y class="proxy-content-body">
-        <rich-text nodes="{{proxyHtmlContent}}" class="rich-text"></rich-text>
-      </scroll-view>
-    </view>
-    
-    <!-- webview组件（隐藏的备用） -->
-    <web-view 
-      src="{{proxyUrl}}" 
-      class="webview" 
-      bindload="onWebviewLoad"
-      binderror="onWebviewError"
-      bindmessage="onWebviewMessage"
-      style="display: none;"
-    ></web-view>
-  </view>
-
-  <!-- Rich-text模式 -->
-  <view wx:else class="article-container">
     <!-- 文章标题 -->
     <view class="article-header">
       <text class="article-title">{{title}}</text>
       <view class="article-actions">
-        <button class="action-btn" bindtap="copyLink">复制链接</button>
+        <button class="action-btn" bindtap="copyLink">📋 复制链接</button>
       </view>
     </view>
 
@@ -64,11 +40,13 @@
     <view wx:if="{{platformInfo && platformInfo.canJump}}" class="platform-jump">
       <view class="platform-info-bar">
         <text class="platform-icon">{{platformInfo.icon}}</text>
-        <text class="platform-name">{{platformInfo.name}}</text>
-        <text class="platform-desc">支持App直接打开</text>
+        <view class="platform-text">
+          <text class="platform-name">{{platformInfo.name}}</text>
+          <text class="platform-desc">✨ {{platformInfo.jumpText}}</text>
+        </view>
       </view>
-      <button class="jump-btn" style="background-color: {{platformInfo.color}}" bindtap="jumpToPlatform">
-        {{platformInfo.jumpText}}
+      <button class="jump-btn" style="background: {{platformInfo.color}}" bindtap="jumpToPlatform">
+        🚀 {{platformInfo.jumpText}}
       </button>
     </view>
 
@@ -76,13 +54,106 @@
     <view class="article-content">
       <rich-text wx:if="{{content}}" nodes="{{content}}" class="rich-text"></rich-text>
       <view wx:else class="no-content">
-        <text>内容加载中...</text>
+        <view class="no-content-icon">📖</view>
+        <text class="no-content-text">内容加载中...</text>
       </view>
     </view>
 
     <!-- 底部提示 -->
     <view class="article-footer">
-      <text class="footer-text">内容来源于原始链接</text>
+      <text class="footer-text">💡 内容来源于原始链接，已优化为文本格式</text>
+    </view>
+  </view>
+
+  <!-- 代理网页模式 -->
+  <view wx:elif="{{displayMode === 'proxy-webview'}}" class="proxy-webview-container">
+    <!-- 模式指示器 -->
+    <view wx:if="{{showModeIndicator}}" class="mode-indicator proxy-mode">
+      <text class="mode-text">🌐 代理网页模式</text>
+    </view>
+    
+    <!-- 代理内容显示 -->
+    <view wx:if="{{showProxyContent}}" class="proxy-content-modal">
+      <view class="proxy-content-header">
+        <view class="header-info">
+          <text class="header-title">📄 代理网页内容</text>
+          <text class="header-subtitle">已优化移动端显示</text>
+        </view>
+        <button size="mini" bindtap="closeProxyContent" class="close-btn">✕</button>
+      </view>
+      <scroll-view scroll-y class="proxy-content-body" enhanced="{{true}}" show-scrollbar="{{false}}">
+        <view class="content-wrapper">
+          <rich-text nodes="{{proxyHtmlContent}}" class="rich-text"></rich-text>
+          <view class="content-end">
+            <view class="end-indicator">📖 内容已全部加载</view>
+            <text class="content-info">通过代理服务器获取 • {{proxyHtmlContent.length}} 字符</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+    
+    <!-- 加载中状态 -->
+    <view wx:else class="proxy-loading-container">
+      <view class="loading-card">
+        <view class="loading-animation">
+          <view class="loading-ring"></view>
+          <view class="loading-ring"></view>
+          <view class="loading-ring"></view>
+        </view>
+        <text class="loading-title">🚀 正在获取网页内容</text>
+        <text class="loading-desc">通过代理服务器突破限制，为您呈现完整内容</text>
+        <view class="loading-steps">
+          <view class="step step-active">
+            <view class="step-dot"></view>
+            <text>连接代理服务器</text>
+          </view>
+          <view class="step step-active">
+            <view class="step-dot"></view>
+            <text>获取网页内容</text>
+          </view>
+          <view class="step">
+            <view class="step-dot"></view>
+            <text>优化移动端显示</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- webview组件（备用，通常不工作） -->
+    <web-view 
+      wx:if="{{false}}"
+      src="{{proxyUrl}}" 
+      class="webview" 
+      bindload="onWebviewLoad"
+      binderror="onWebviewError"
+      bindmessage="onWebviewMessage"
+    ></web-view>
+  </view>
+
+  <!-- 直接网页模式 -->
+  <view wx:elif="{{displayMode === 'direct-webview'}}" class="direct-webview-container">
+    <!-- 模式指示器 -->
+    <view wx:if="{{showModeIndicator}}" class="mode-indicator direct-mode">
+      <text class="mode-text">直接网页模式</text>
+    </view>
+    
+    <!-- webview组件 -->
+    <web-view 
+      src="{{url}}" 
+      class="webview" 
+      bindload="onWebviewLoad"
+      binderror="onWebviewError"
+      bindmessage="onWebviewMessage"
+    ></web-view>
+  </view>
+
+  <!-- 未知模式 -->
+  <view wx:else class="unknown-mode-container">
+    <view class="error-container">
+      <view class="error-icon">❓</view>
+      <text class="error-title">未知显示模式</text>
+      <text class="error-message">当前显示模式：{{displayMode}}</text>
+      <button class="retry-btn" bindtap="reload">重新加载</button>
     </view>
   </view>
 </view>

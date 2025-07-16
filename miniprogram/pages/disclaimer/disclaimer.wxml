@@ -1,0 +1,117 @@
+<scroll-view scroll-y class="container">
+  <!-- 页面标题 -->
+  <view class="header">
+    <view class="icon">📋</view>
+    <text class="title">免责声明与用户协议</text>
+    <text class="subtitle">版本 {{version}} · 更新于 {{updateDate}}</text>
+  </view>
+
+  <!-- 内容声明 -->
+  <view class="section">
+    <view class="section-title">
+      <text class="emoji">📰</text>
+      <text class="text">内容声明</text>
+    </view>
+    <view class="content">
+      <text class="paragraph">1. 本小程序仅为信息聚合展示平台，所有新闻内容均来源于以下第三方平台：</text>
+      <view class="source-list">
+        <text class="source-item">• 知乎热榜 (zhihu.com)</text>
+        <text class="source-item">• 微博热搜 (weibo.com)</text>
+        <text class="source-item">• 百度热点 (baidu.com)</text>
+        <text class="source-item">• B站热榜 (bilibili.com)</text>
+        <text class="source-item">• 抖音热点 (douyin.com)</text>
+        <text class="source-item">• 虎扑热榜 (hupu.com)</text>
+        <text class="source-item">• 豆瓣热榜 (douban.com)</text>
+        <text class="source-item">• 36氪 (36kr.com)</text>
+        <text class="source-item">• IT新闻 (ithome.com)</text>
+      </view>
+      <text class="paragraph">2. 我们不拥有、编辑或控制任何第三方内容，仅提供技术性聚合服务。</text>
+      <text class="paragraph">3. 所有内容的版权归其原始发布平台及内容创作者所有。</text>
+    </view>
+  </view>
+
+  <!-- 免责声明 -->
+  <view class="section">
+    <view class="section-title">
+      <text class="emoji">⚠️</text>
+      <text class="text">免责声明</text>
+    </view>
+    <view class="content">
+      <text class="paragraph">1. 本小程序不对聚合内容的准确性、完整性、时效性承担责任。</text>
+      <text class="paragraph">2. 用户访问第三方链接时，将跳转至对应原始平台，相关风险由用户自行承担。</text>
+      <text class="paragraph">3. 如发现内容侵权或不当，请及时联系我们处理。</text>
+      <text class="paragraph">4. 本小程序保留随时修改、暂停或终止服务的权利。</text>
+    </view>
+  </view>
+
+  <!-- 隐私政策 -->
+  <view class="section">
+    <view class="section-title">
+      <text class="emoji">🔒</text>
+      <text class="text">隐私保护</text>
+    </view>
+    <view class="content">
+      <text class="paragraph">1. 我们不收集、存储任何用户个人信息。</text>
+      <text class="paragraph">2. 用户的阅读习惯和偏好仅存储在本地设备中。</text>
+      <text class="paragraph">3. 我们不会向第三方分享用户数据。</text>
+      <text class="paragraph">4. 使用过程中产生的网络请求仅用于获取公开的热点信息。</text>
+    </view>
+  </view>
+
+  <!-- 技术说明 -->
+  <view class="section">
+    <view class="section-title">
+      <text class="emoji">⚙️</text>
+      <text class="text">技术说明</text>
+    </view>
+    <view class="content">
+      <text class="paragraph">1. 为解决小程序跨域限制，我们提供代理服务功能。</text>
+      <text class="paragraph">2. 代理服务仅用于技术性内容获取，不涉及任何违规操作。</text>
+      <text class="paragraph">3. 所有数据传输均采用HTTPS加密协议。</text>
+      <text class="paragraph">4. 内容获取遵循各平台的robots.txt规则。</text>
+    </view>
+  </view>
+
+  <!-- 使用须知 -->
+  <view class="section">
+    <view class="section-title">
+      <text class="emoji">📖</text>
+      <text class="text">使用须知</text>
+    </view>
+    <view class="content">
+      <text class="paragraph">1. 请遵守国家法律法规，理性阅读，不传播不实信息。</text>
+      <text class="paragraph">2. 尊重内容创作者的版权，如需转载请获得原作者授权。</text>
+      <text class="paragraph">3. 发现技术问题或有改进建议，欢迎反馈。</text>
+      <text class="paragraph">4. 继续使用本小程序即表示您同意本声明的所有条款。</text>
+    </view>
+  </view>
+
+  <!-- 联系方式 -->
+  <view class="section">
+    <view class="section-title">
+      <text class="emoji">📧</text>
+      <text class="text">联系我们</text>
+    </view>
+    <view class="content">
+      <text class="paragraph">如有任何问题或建议，请通过以下方式联系：</text>
+      <view class="contact-item" bindtap="copyEmail">
+        <text class="contact-label">邮箱：</text>
+        <text class="contact-value">support@hotnews.com</text>
+        <text class="copy-hint">（点击复制）</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部按钮 -->
+  <view class="footer">
+    <button class="btn-primary" bindtap="goHome">
+      🏠 返回首页
+    </button>
+  </view>
+
+  <!-- 底部说明 -->
+  <view class="bottom-note">
+    <text class="note-text">本声明的最终解释权归小程序开发者所有</text>
+    <text class="note-text">最后更新：{{updateDate}}</text>
+  </view>
+</scroll-view>

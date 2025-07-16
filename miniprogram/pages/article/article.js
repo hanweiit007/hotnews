@@ -1,4 +1,5 @@
 const app = getApp();
+const envConfig = require('../../config/environment');
 
 Page({
   data: {
@@ -13,7 +14,8 @@ Page({
     proxyUrl: '',  // 新增：代理URL（用于webview模式）
     showWebview: false, // 新增：是否显示webview
     showProxyContent: false, // 新增：是否显示代理内容模态框
-    proxyHtmlContent: '' // 新增：代理HTML内容
+    proxyHtmlContent: '', // 新增：代理HTML内容
+    showModeIndicator: envConfig.isDevelopmentVersion() // 新增：是否显示模式指示器
   },
 
   onLoad: function(options) {
@@ -53,6 +55,17 @@ Page({
   loadContentByMode: function(mode, url) {
     console.log('根据显示模式加载内容:', mode, url);
     
+    // 检查功能是否启用
+    if (mode === 'proxy-webview' && !envConfig.isFeatureEnabled('proxyWebview')) {
+      console.warn('代理模式已禁用，降级为富文本模式');
+      mode = 'rich-text';
+    }
+    
+    if (mode === 'direct-webview' && !envConfig.isFeatureEnabled('directWebview')) {
+      console.warn('直接webview模式已禁用，降级为富文本模式');
+      mode = 'rich-text';
+    }
+    
     switch(mode) {
       case 'rich-text':
         this.loadArticleContent();
@@ -83,13 +96,13 @@ Page({
     
     this.setData({
       proxyUrl: proxyUrl,
-      showWebview: true,
-      loading: false
+      loading: false,
+      showWebview: false  // 代理模式不使用webview状态
     });
     
     console.log('页面数据设置完成:', {
       proxyUrl: that.data.proxyUrl,
-      showWebview: that.data.showWebview,
+      displayMode: that.data.displayMode,
       loading: that.data.loading
     });
     
@@ -98,11 +111,8 @@ Page({
       title: '网页内容（代理）'
     });
     
-    // 由于webview可能不工作，2秒后自动使用备用方案
-    setTimeout(() => {
-      console.log('webview可能不工作，自动使用备用方案');
-      that.loadProxyContent();
-    }, 3000);
+    // 立即开始加载代理内容
+    this.loadProxyContent();
   },
 
   // 新增：加载直接webview
@@ -111,8 +121,8 @@ Page({
     
     this.setData({
       proxyUrl: url,
-      showWebview: true,
-      loading: false
+      loading: false,
+      showWebview: false  // 直接模式也不使用showWebview状态
     });
     
     // 设置页面标题
