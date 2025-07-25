@@ -55,6 +55,15 @@ Page({
   loadContentByMode: function(mode, url) {
     console.log('根据显示模式加载内容:', mode, url);
     
+    // 检查是否为webview-only模式，强制使用direct-webview且不爬取内容
+    if (envConfig.isWebviewOnlyVersion()) {
+      console.log('检测到webview-only模式，强制使用direct-webview模式，不爬取内容');
+      mode = 'direct-webview';
+      this.setData({
+        displayMode: 'direct-webview'
+      });
+    }
+    
     // 检查功能是否启用
     if (mode === 'proxy-webview' && !envConfig.isFeatureEnabled('proxyWebview')) {
       console.warn('代理模式已禁用，降级为富文本模式');
@@ -64,6 +73,17 @@ Page({
     if (mode === 'direct-webview' && !envConfig.isFeatureEnabled('directWebview')) {
       console.warn('直接webview模式已禁用，降级为富文本模式');
       mode = 'rich-text';
+    }
+    
+    // webview-only模式下，禁用内容爬取功能
+    if (envConfig.isWebviewOnlyVersion() && !envConfig.isFeatureEnabled('contentCrawl')) {
+      if (mode === 'rich-text' || mode === 'proxy-webview') {
+        console.log('webview-only模式下禁用内容爬取，强制使用direct-webview');
+        mode = 'direct-webview';
+        this.setData({
+          displayMode: 'direct-webview'
+        });
+      }
     }
     
     switch(mode) {
@@ -88,8 +108,8 @@ Page({
     
     console.log('使用代理webview模式，原始URL:', url);
     
-    // 构建代理URL（使用GET方式）
-    const proxyUrl = `${app.globalData.mcpBaseUrl}/api/article-html?url=${encodeURIComponent(url)}`;
+    // 构建代理URL（使用GET方式）并添加模式参数
+    const proxyUrl = `${app.globalData.mcpBaseUrl}/api/article-html?url=${encodeURIComponent(url)}&mode=proxy-webview`;
     
     console.log('代理URL:', proxyUrl);
     console.log('MCP Base URL:', app.globalData.mcpBaseUrl);
@@ -448,6 +468,7 @@ Page({
     const that = this;
     
     console.log('开始加载文章内容，当前URL:', this.data.url);
+    console.log('当前显示模式:', this.data.displayMode);
     
     // 设置加载状态
     this.setData({
@@ -460,7 +481,8 @@ Page({
       mask: true
     });
 
-    app.getArticleContent(this.data.url)
+    // 传递显示模式参数
+    app.getArticleContent(this.data.url, this.data.displayMode)
       .then(function(result) {
         console.log('成功获取文章内容:', result);
         console.log('准备设置页面数据...');

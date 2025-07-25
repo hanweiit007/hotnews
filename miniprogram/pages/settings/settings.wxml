@@ -42,8 +42,8 @@
   <view class="settings-group">
     <view class="group-title">其他设置</view>
     
-    <!-- 新增：内容显示模式设置 -->
-    <view class="setting-item">
+    <!-- 新增：内容显示模式设置 - 仅在非webview-only模式下显示 -->
+    <view class="setting-item" wx:if="{{displayModeOptions.length > 0}}">
       <view class="setting-label">
         <text class="label-text">内容显示模式</text>
         <text class="label-desc">选择文章内容的显示方式</text>
@@ -62,9 +62,30 @@
       </view>
     </view>
 
-    <!-- 显示模式说明 -->
-    <view class="mode-description">
+    <!-- 显示模式说明 - 仅在非webview-only模式下显示 -->
+    <view class="mode-description" wx:if="{{displayModeOptions.length > 0}}">
       <text class="mode-desc-text">{{currentDisplayModeDesc}}</text>
+    </view>
+
+    <!-- webview-only模式说明 -->
+    <view class="webview-only-info" wx:if="{{displayModeOptions.length === 0}}">
+      <view class="info-header">
+        <text class="info-title">🌐 纯Webview模式</text>
+      </view>
+      <view class="info-content">
+        <text class="info-desc">当前版本采用纯原生webview访问，直接跳转到各大平台原网站，享受完整的原生体验，同时完全保护您的隐私安全。</text>
+      </view>
+      <view class="info-features">
+        <view class="feature-item">
+          <text class="feature-text">✅ 无数据抓取，完全保护隐私</text>
+        </view>
+        <view class="feature-item">
+          <text class="feature-text">✅ 原生网站体验，功能完整</text>
+        </view>
+        <view class="feature-item">
+          <text class="feature-text">✅ 访问速度快，稳定性好</text>
+        </view>
+      </view>
     </view>
     
     <!-- 自动刷新设置 -->

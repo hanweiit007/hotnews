@@ -27,10 +27,12 @@ show_help() {
     echo "  development  - 开发环境（完整功能）"
     echo "  audit        - 审核版本（功能受限）"
     echo "  production   - 生产版本（完整功能）"
+    echo "  webview_only - 纯webview版本（无抓取，零依赖）"
     echo ""
     echo "示例："
-    echo "  $0 audit      # 切换到审核版本"
-    echo "  $0 production # 切换到生产版本"
+    echo "  $0 audit        # 切换到审核版本"
+    echo "  $0 production   # 切换到生产版本"
+    echo "  $0 webview_only # 切换到纯webview版本"
     echo ""
 }
 
@@ -85,6 +87,11 @@ switch_environment() {
             # 开发版本配置
             echo -e "${YELLOW}配置开发版本参数...${NC}"
             ;;
+        "webview_only")
+            # 纯webview版本配置
+            echo -e "${YELLOW}配置纯webview版本参数...${NC}"
+            echo -e "${GREEN}✓ 无需MCP服务器，完全无依赖${NC}"
+            ;;
     esac
     
     echo -e "${GREEN}✓ 环境切换完成${NC}"
@@ -134,6 +141,14 @@ show_current_config() {
             echo -e "直接网页模式: ${GREEN}启用${NC}"
             echo -e "平台跳转: ${GREEN}启用${NC}"
             ;;
+        "WEBVIEW_ONLY")
+            echo -e "富文本模式: ${RED}禁用${NC}"
+            echo -e "代理网页模式: ${RED}禁用${NC}"
+            echo -e "直接网页模式: ${GREEN}强制启用${NC}"
+            echo -e "平台跳转: ${GREEN}启用${NC}"
+            echo -e "数据抓取: ${RED}完全禁用${NC}"
+            echo -e "服务器依赖: ${RED}零依赖${NC}"
+            ;;
     esac
 }
 
@@ -164,6 +179,21 @@ show_deploy_tips() {
             echo "2. 使用本地开发服务器"
             echo "3. 显示详细错误信息"
             ;;
+        "webview_only")
+            echo -e "${GREEN}纯webview版本注意事项：${NC}"
+            echo "1. 🚀 完全无数据抓取，完全合规"
+            echo "2. 💰 无需部署MCP服务器，零成本"
+            echo "3. 🔒 最佳隐私保护，用户数据不经过第三方"
+            echo "4. 🌐 直接访问原网站，功能完整"
+            echo "5. ⚡ 即开即用，无网络等待"
+            echo "6. 📱 适合应用商店审核，合规性最佳"
+            echo ""
+            echo -e "${YELLOW}部署检查清单：${NC}"
+            echo "✓ 确认无需配置服务器域名"
+            echo "✓ 测试所有站点webview跳转功能"
+            echo "✓ 验证设置页面显示正确"
+            echo "✓ 确认无MCP相关错误日志"
+            ;;
     esac
     
     echo -e "\n${GREEN}✓ 环境切换完成，可以开始构建和部署${NC}"
@@ -181,7 +211,7 @@ main() {
     
     # 验证环境类型
     case $env_type in
-        "development"|"audit"|"production")
+        "development"|"audit"|"production"|"webview_only")
             ;;
         *)
             echo -e "${RED}错误：无效的环境类型 '$env_type'${NC}"

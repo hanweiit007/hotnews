@@ -2,6 +2,7 @@
 var app = getApp()
 const util = require('../../utils/util.js') // 导入工具函数
 const siteConfig = require('../../config/siteConfig');
+const envConfig = require('../../config/environment'); // 添加环境配置导入
 
 Page({
   data: {
@@ -27,6 +28,7 @@ Page({
     this.setData({
       currentTime: new Date().toLocaleString()
     });
+    
     this.loadData();
   },
 
@@ -35,6 +37,7 @@ Page({
     this.setData({
       currentTime: new Date().toLocaleString()
     });
+    
     // 如果没有数据，重新加载
     if (!this.data.sites || this.data.sites.length === 0) {
       this.loadData();
@@ -71,6 +74,13 @@ Page({
 
   loadData: function() {
     console.log('开始加载数据...');
+    
+    // webview-only模式仍然加载动态数据，但在article页面只使用webview展示
+    if (envConfig.isWebviewOnlyVersion()) {
+      console.log('webview-only模式，仍然加载动态热点数据');
+      // 继续执行正常的数据加载流程
+    }
+    
     if (this.data.isLoading) {
       console.log('正在加载中，跳过重复请求');
       return;

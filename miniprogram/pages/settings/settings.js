@@ -41,33 +41,42 @@ Page({
     const isAuditVersion = envConfig.isAuditVersion();
     
     // 根据环境配置显示模式选项
-    let displayModeOptions = [
-      { 
-        value: 'rich-text', 
-        label: '📝 富文本模式', 
-        desc: '纯文本内容，加载快速，稳定性好',
-        available: true
+    let displayModeOptions = [];
+    
+    // 如果是webview-only模式，不显示显示模式选项
+    if (envConfig.isWebviewOnlyVersion()) {
+      console.log('webview-only模式，隐藏显示模式选项');
+      displayModeOptions = []; // 空数组，不显示任何选项
+    } else {
+      // 普通模式的显示选项配置
+      displayModeOptions = [
+        { 
+          value: 'rich-text', 
+          label: '📝 富文本模式', 
+          desc: '纯文本内容，加载快速，稳定性好',
+          available: true
+        }
+      ];
+      
+      // 只有非审核版本才显示代理功能
+      if (!isAuditVersion && envConfig.isFeatureEnabled('proxyWebview')) {
+        displayModeOptions.push({
+          value: 'proxy-webview', 
+          label: '🌐 代理网页模式', 
+          desc: '通过代理服务器获取完整网页内容',
+          available: true
+        });
       }
-    ];
-    
-    // 只有非审核版本才显示代理功能
-    if (!isAuditVersion && envConfig.isFeatureEnabled('proxyWebview')) {
-      displayModeOptions.push({
-        value: 'proxy-webview', 
-        label: '🌐 代理网页模式', 
-        desc: '通过代理服务器获取完整网页内容',
-        available: true
-      });
-    }
-    
-    // 只有开发环境才显示直接webview
-    if (envConfig.isDevelopmentVersion() && envConfig.isFeatureEnabled('directWebview')) {
-      displayModeOptions.push({
-        value: 'direct-webview', 
-        label: '🔗 直接网页模式', 
-        desc: '原生网页访问（仅开发环境）',
-        available: true
-      });
+      
+      // 只有开发环境才显示直接webview
+      if (envConfig.isDevelopmentVersion() && envConfig.isFeatureEnabled('directWebview')) {
+        displayModeOptions.push({
+          value: 'direct-webview', 
+          label: '🔗 直接网页模式', 
+          desc: '原生网页访问（仅开发环境）',
+          available: true
+        });
+      }
     }
     
     that.setData({
